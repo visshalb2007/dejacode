@@ -320,6 +320,44 @@ def plot_interactive_clusters(df, xy, labels, names, path="out/clusters.html"):
     fig.write_html(path, include_plotlyjs="cdn")
     return fig
 
+# ---------- 5b. hidden matches (same algorithm, different story) ----------
+def find_hidden_matches(df, emb, min_semantic=0.62, max_keyword=0.12, top_n=30):
+    """Find problem pairs with high semantic embedding similarity but low TF-IDF keyword overlap."""
+    tv = TfidfVectorizer(stop_words="english", sublinear_tf=True, max_features=30000)
+    X = tv.fit_transform(df["doc"])
+    sparse_sim = (X @ X.T).toarray()
+    dense_sim = emb @ emb.T
+    
+    i_idx, j_idx = np.triu_indices(len(df), k=1)
+    d_vals = dense_sim[i_idx, j_idx]
+    s_vals = sparse_sim[i_idx, j_idx]
+    
+    mask = (d_vals >= min_semantic) & (s_vals <= max_keyword)
+    cand_i, cand_j = i_idx[mask], j_idx[mask]
+    div_vals = d_vals[mask] - s_vals[mask]
+    
+    top_ranks = np.argsort(-div_vals)[:top_n]
+    
+    pairs = []
+    for r in top_ranks:
+        i, j = cand_i[r], cand_j[r]
+        row_i, row_j = df.iloc[i], df.iloc[j]
+        pairs.append({
+            "idx1": i, "idx2": j,
+            "prob1_code": row_i.get("qcode", f"P{i}"),
+            "prob1_title": row_i.get("title", "Untitled"),
+            "prob2_code": row_j.get("qcode", f"P{j}"),
+            "prob2_title": row_j.get("title", "Untitled"),
+            "semantic_sim": round(float(d_vals[mask][r]), 3),
+            "keyword_sim": round(float(s_vals[mask][r]), 3),
+            "divergence": round(float(div_vals[r]), 3),
+            "prob1_level": row_i.get("difficulty", "unknown"),
+            "prob2_level": row_j.get("difficulty", "unknown"),
+            "cluster_1": row_i.get("cluster", -1),
+            "cluster_2": row_j.get("cluster", -1),
+        })
+    return pd.DataFrame(pairs)
+
 # ---------- 6. evaluation (relevance = shares >=1 tag) ----------
 def evaluate(s, n_queries=200, k=10, seed=0):
     df = s.df; ok = np.where(df["tags"].map(len) > 0)[0]
