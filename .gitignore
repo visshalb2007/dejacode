@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+data/program_codes/
+data/solutions.csv
+.streamlit/
+out/*.npy
+out/*.csv
+out/*.png
+out/*.html
+out/*.json
