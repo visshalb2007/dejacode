@@ -117,16 +117,20 @@ class Searcher:
             self._m = SentenceTransformer(self.model_name)
         return self._m.encode([q], normalize_embeddings=True)[0]
 
-    def scores(self, q, mode="semantic", alpha=0.7):
-        sem = self.emb @ self._q_emb(q)
-        kw = (self.tf @ self.tfidf.transform([q]).T).toarray().ravel()
-        if mode == "semantic": return sem
-        if mode == "keyword": return kw
+    def scores(self, q, mode="semantic", alpha=0.7, qi=None):
+        if qi is not None:
+            sem = self.emb @ self.emb[qi]
+            kw = (self.tf @ self.tf[qi].T).toarray().ravel()
+        else:
+            sem = self.emb @ self._q_emb(q)
+            kw = (self.tf @ self.tfidf.transform([q]).T).toarray().ravel()
+        if mode == "semantic": return sem.copy()
+        if mode == "keyword": return kw.copy()
         z = lambda x: (x - x.mean()) / (x.std() + 1e-9)
         return alpha * z(sem) + (1 - alpha) * z(kw)
 
-    def search(self, q, k=5, mode="semantic", alpha=0.7, exclude=None):
-        s = self.scores(q, mode, alpha)
+    def search(self, q, k=5, mode="semantic", alpha=0.7, exclude=None, qi=None):
+        s = self.scores(q, mode, alpha, qi=qi)
         if exclude is not None: s[exclude] = -1e9
         idx = np.argsort(-s)[:k]
         cols = [c for c in ["qcode", "title", "difficulty", "tags", "link"] if c in self.df.columns]
@@ -167,7 +171,7 @@ def evaluate(s, n_queries=200, k=10, seed=0):
     for mode in ["keyword", "semantic", "hybrid"]:
         P, MRR, NDCG = [], [], []
         for qi in qs:
-            sc = s.scores(df["doc"][qi], mode); sc[qi] = -1e9
+            sc = s.scores(df["doc"][qi], mode, qi=qi); sc[qi] = -1e9
             top = np.argsort(-sc)[:k]; qt = set(df["tags"][qi])
             rel = np.array([len(qt & set(df["tags"][j])) > 0 for j in top], float)
             P.append(rel.mean())
@@ -177,6 +181,35 @@ def evaluate(s, n_queries=200, k=10, seed=0):
                 fails.append((df["title"][qi], df["title"][top[0]], round(float(sc[top[0]]), 3), sorted(qt), sorted(df["tags"][top[0]])))
         res[mode] = {f"P@{k}": np.mean(P), "MRR": np.mean(MRR), f"nDCG@{k}": np.mean(NDCG)}
     return pd.DataFrame(res).T, fails
+
+def evaluate_curated(s, eval_path="data/eval_set.csv", k=10):
+    """Evaluate against curated benchmark with known-similar problem sets (P@5, MRR, nDCG@k)."""
+    if not os.path.exists(eval_path): return None
+    eval_df = pd.read_csv(eval_path)
+    df = s.df
+    qcode_to_idx = {str(q): i for i, q in enumerate(df["qcode"])} if "qcode" in df.columns else {}
+    valid_rows = [row for _, row in eval_df.iterrows() if str(row["query_qcode"]) in qcode_to_idx]
+    if not valid_rows: return None
+    res = {}
+    for mode in ["keyword", "semantic", "hybrid"]:
+        P5, MRR, NDCG = [], [], []
+        for row in valid_rows:
+            qi = qcode_to_idx[str(row["query_qcode"])]
+            targets = {x.strip() for x in str(row["similar_qcodes"]).split(",") if x.strip()}
+            sc = s.scores(df["doc"][qi], mode, qi=qi)
+            sc[qi] = -1e9
+            top = np.argsort(-sc)[:k]
+            top_qcodes = [str(df.iloc[j]["qcode"]) for j in top] if "qcode" in df.columns else []
+            rel = np.array([1.0 if q in targets else 0.0 for q in top_qcodes], float)
+            P5.append(rel[:5].mean() if len(rel) >= 5 else rel.mean())
+            MRR.append(1.0 / (np.argmax(rel) + 1) if rel.any() else 0.0)
+            discounts = np.log2(np.arange(2, len(rel) + 2))
+            dcg = (rel / discounts).sum()
+            n_rel = min(len(targets), k)
+            idcg = (1.0 / np.log2(np.arange(2, n_rel + 2))).sum() if n_rel > 0 else 1.0
+            NDCG.append(dcg / max(1e-9, idcg))
+        res[mode] = {"P@5": np.mean(P5), "MRR": np.mean(MRR), f"nDCG@{k}": np.mean(NDCG)}
+    return pd.DataFrame(res).T
 
 # ---------- CLI: build everything ----------
 if __name__ == "__main__":
@@ -191,7 +224,13 @@ if __name__ == "__main__":
     df.drop(columns="doc").to_csv(f"{a.out}/problems_clustered.csv", index=False)
     plot_clusters(emb, labels, names, f"{a.out}/clusters.png")
     print(f"silhouette={sil:.3f}"); [print(c, n) for c, n in names.items()]
-    metrics, fails = evaluate(Searcher(df, emb, a.model))
+    searcher = Searcher(df, emb, a.model)
+    metrics, fails = evaluate(searcher)
     if metrics is not None:
+        print("\n=== Tag-Overlap Evaluation (Noisy Proxy) ===")
         print(metrics.round(3)); metrics.to_csv(f"{a.out}/metrics.csv")
         pd.DataFrame(fails, columns=["query", "wrong_match", "score", "q_tags", "m_tags"]).to_csv(f"{a.out}/failures.csv", index=False)
+    curated_metrics = evaluate_curated(searcher, "data/eval_set.csv", k=10)
+    if curated_metrics is not None:
+        print("\n=== Curated Benchmark Evaluation (Hand-crafted Ground Truth) ===")
+        print(curated_metrics.round(3)); curated_metrics.to_csv(f"{a.out}/eval_benchmark_metrics.csv")
