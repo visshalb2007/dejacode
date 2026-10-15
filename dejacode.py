@@ -428,6 +428,43 @@ def evaluate_curated(s, eval_path="data/eval_set.csv", k=10):
         res[mode] = {"P@5": np.mean(P5), "MRR": np.mean(MRR), f"nDCG@{k}": np.mean(NDCG)}
     return pd.DataFrame(res).T
 
+def tune_hybrid_alpha(s, eval_path="data/eval_set.csv", alphas=None):
+    """Grid sweep alpha in hybrid search to find the optimal balance between keyword and semantic scores."""
+    if not os.path.exists(eval_path): return None
+    eval_df = pd.read_csv(eval_path)
+    df = s.df
+    qcode_to_idx = {str(q): i for i, q in enumerate(df["qcode"])} if "qcode" in df.columns else {}
+    valid_rows = [row for _, row in eval_df.iterrows() if str(row["query_qcode"]) in qcode_to_idx]
+    if not valid_rows: return None
+    if alphas is None:
+        alphas = [0.0, 0.2, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0]
+    records = []
+    for alpha in alphas:
+        P5, MRR, NDCG = [], [], []
+        for row in valid_rows:
+            qi = qcode_to_idx[str(row["query_qcode"])]
+            targets = {x.strip() for x in str(row["similar_qcodes"]).split(",") if x.strip()}
+            mode = "keyword" if alpha == 0.0 else ("semantic" if alpha == 1.0 else "hybrid")
+            sc = s.scores(df["doc"][qi], mode=mode, alpha=alpha, qi=qi)
+            sc[qi] = -1e9
+            top = np.argsort(-sc)[:10]
+            top_qcodes = [str(df.iloc[j]["qcode"]) for j in top] if "qcode" in df.columns else []
+            rel = np.array([1.0 if q in targets else 0.0 for q in top_qcodes], float)
+            P5.append(rel[:5].mean() if len(rel) >= 5 else rel.mean())
+            MRR.append(1.0 / (np.argmax(rel) + 1) if rel.any() else 0.0)
+            discounts = np.log2(np.arange(2, len(rel) + 2))
+            dcg = (rel / discounts).sum()
+            n_rel = min(len(targets), 10)
+            idcg = (1.0 / np.log2(np.arange(2, n_rel + 2))).sum() if n_rel > 0 else 1.0
+            NDCG.append(dcg / max(1e-9, idcg))
+        records.append({
+            "alpha": alpha,
+            "P@5": round(float(np.mean(P5)), 3),
+            "MRR": round(float(np.mean(MRR)), 3),
+            "nDCG@10": round(float(np.mean(NDCG)), 3)
+        })
+    return pd.DataFrame(records)
+
 def categorize_failures(fails_df, df):
     """Categorize false match failures into 4 distinct failure causes."""
     title_to_text = dict(zip(df["title"], df["text"]))
