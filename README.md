@@ -1,6 +1,7 @@
 <div align="center">
 
-# ⚡ Déjà Code
+<img width="1561" height="381" alt="image" src="https://github.com/user-attachments/assets/6eeb978b-1778-4033-86ee-c20784604600" />
+
 ### Dense Semantic Information Retrieval & Unsupervised Topic Discovery for Competitive Programming
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
@@ -155,10 +156,10 @@ Déjà Code implements a concept-aligned difficulty progression engine:
 
 The accompanying web interface provides an analytical workbench across 4 specialized modules:
 
-- **Tab 1: 🔍 Search & Lookup:** Natural language problem search with real-time hybrid alpha weighting, difficulty filters, and statement previews.
-- **Tab 2: ⚖️ Mode Comparison:** Side-by-side contrast of Sparse Keyword vs Dense Semantic search on identical queries, computing real-time Jaccard overlap and novel semantic discovery counts.
-- **Tab 3: 🌌 Interactive Clusters:** Nonlinear 2D UMAP scatter projection built with Plotly Graph Objects. Includes cluster profile tables and medoid exemplar inspection.
-- **Tab 4: 🎯 Adaptive Recommendations:** Solved problem selection with progression ladder controls (`+1 Level Up`, `0 Reinforce`, `-1 Review`), empirical solve statistics, and an accepted code peek drawer.
+- **Tab 1: Search & Lookup:** Natural language problem search with real-time hybrid alpha weighting, difficulty filters, and statement previews.
+- **Tab 2: Mode Comparison:** Side-by-side contrast of Sparse Keyword vs Dense Semantic search on identical queries, computing real-time Jaccard overlap and novel semantic discovery counts.
+- **Tab 3: Interactive Clusters:** Nonlinear 2D UMAP scatter projection built with Plotly Graph Objects. Includes cluster profile tables and medoid exemplar inspection.
+- **Tab 4: Adaptive Recommendations:** Solved problem selection with progression ladder controls (`+1 Level Up`, `0 Reinforce`, `-1 Review`), empirical solve statistics, and an accepted code peek drawer.
 
 ```bash
 streamlit run app.py
