@@ -216,9 +216,16 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", required=True); ap.add_argument("--k", type=int, default=15)
     ap.add_argument("--model", default="all-MiniLM-L6-v2"); ap.add_argument("--out", default="out")
+    ap.add_argument("--force-embed", action="store_true", help="Force recomputation of embeddings")
     a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
     df = preprocess(load(a.data)); print("problems after cleaning:", len(df))
-    emb = embed(df["doc"], a.model); np.save(f"{a.out}/emb.npy", emb)
+    emb_path = f"{a.out}/emb.npy"
+    if os.path.exists(emb_path) and not a.force_embed:
+        emb = np.load(emb_path)
+        if len(emb) != len(df):
+            emb = embed(df["doc"], a.model); np.save(emb_path, emb)
+    else:
+        emb = embed(df["doc"], a.model); np.save(emb_path, emb)
     labels, sil = cluster(emb, a.k); names = label_clusters(df, labels)
     df["cluster"] = labels; df["cluster_label"] = df["cluster"].map(names)
     df.drop(columns="doc").to_csv(f"{a.out}/problems_clustered.csv", index=False)

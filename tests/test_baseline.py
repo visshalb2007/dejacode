@@ -28,5 +28,12 @@ class TestBaselinePipeline(unittest.TestCase):
         self.assertNotIn("cook64", processed.iloc[0]["tags"])
         self.assertNotIn("easy", processed.iloc[0]["tags"])
 
+    def test_eval_set_exists_and_valid(self):
+        self.assertTrue(os.path.exists("data/eval_set.csv"))
+        df = pd.read_csv("data/eval_set.csv")
+        self.assertGreaterEqual(len(df), 30)
+        self.assertIn("query_qcode", df.columns)
+        self.assertIn("similar_qcodes", df.columns)
+
 if __name__ == "__main__":
     unittest.main()
