@@ -1,276 +1,343 @@
 import os
 import ast
+import re
 import numpy as np
 import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
+import plotly.express as px
 from dejacode import Searcher, recommend_next, attach_solution_stats, get_code_snippet, DIFF_ORDER
 
+# ----------------- PAGE CONFIG -----------------
 st.set_page_config(
-    page_title="Deja Code | Competitive Programming Search & Recommendations",
+    page_title="Deja Code | Problem Search & Recommendations",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Neomorphism (Soft UI) Design System
+# ----------------- STYLING SYSTEM -----------------
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-    /* Global Soft UI Background & Typography */
-    html, body, .stApp {
-        background-color: #EEF2F6 !important;
+    /* === 1. GLOBAL LAYOUT & NEUTRAL CANVAS === */
+    html, body, [data-testid="stAppViewContainer"] {
+        background-color: #F5F6FA !important;
         color: #1E293B !important;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
     }
+    
+    /* Cap max content width and trim excessive top margin */
+    .block-container {
+        max-width: 1200px !important;
+        padding-top: 1.6rem !important;
+        padding-bottom: 2.5rem !important;
+        padding-left: 2rem !important;
+        padding-right: 2rem !important;
+    }
 
-    /* Force all headings and text to high-contrast dark slate */
-    h1, h2, h3, h4, h5, h6,
-    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3, .stMarkdown h4, .stMarkdown h5, .stMarkdown h6,
-    [data-testid="stHeadingWithActionElements"] * {
-        color: #0F172A !important;
+    /* === 2. SIDEBAR DARK GRADIENT & ACCENTS === */
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0F172A 0%, #1E1B4B 100%) !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    section[data-testid="stSidebar"] > div {
+        background: transparent !important;
+        padding-top: 1.8rem !important;
+    }
+    section[data-testid="stSidebar"] * {
+        color: #F8FAFC !important;
+    }
+    section[data-testid="stSidebar"] .stCaption {
+        color: #94A3B8 !important;
+    }
+    section[data-testid="stSidebar"] hr {
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        margin: 1.2rem 0 !important;
+    }
+    
+    /* Sidebar Translucent Metric Panels with Teal Left Border */
+    section[data-testid="stSidebar"] div[data-testid="stMetric"] {
+        background: rgba(255, 255, 255, 0.06) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-left: 4px solid #14B8A6 !important;
+        border-radius: 10px !important;
+        padding: 10px 14px !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+        margin-bottom: 10px !important;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stMetricLabel"] * {
+        color: #94A3B8 !important;
+        font-size: 0.72rem !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stMetricValue"] * {
+        color: #F8FAFC !important;
+        font-size: 1.35rem !important;
         font-weight: 700 !important;
     }
 
+    /* === 3. TYPOGRAPHY & HEADINGS === */
+    h1, h2, h3, h4, h5, h6,
+    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3, .stMarkdown h4, .stMarkdown h5, .stMarkdown h6 {
+        color: #0F172A !important;
+        font-weight: 700 !important;
+        font-family: 'Inter', sans-serif !important;
+    }
     p, span, label,
     .stMarkdown p,
     [data-testid="stWidgetLabel"] label,
-    [data-testid="stWidgetLabel"] p,
-    [data-testid="stMarkdownContainer"] p {
+    [data-testid="stWidgetLabel"] p {
         color: #334155 !important;
-        font-weight: 500 !important;
+        font-family: 'Inter', sans-serif !important;
     }
-
-    .stCaption, small, [data-testid="stCaptionContainer"] {
+    .stCaption {
         color: #64748B !important;
         font-size: 0.88rem !important;
     }
 
-    /* Sidebar Soft UI */
-    section[data-testid="stSidebar"] {
-        background-color: #E2E8F0 !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.8) !important;
-    }
-    section[data-testid="stSidebar"] * {
-        color: #1E293B !important;
-    }
-    section[data-testid="stSidebar"] .stCaption {
-        color: #64748B !important;
-    }
-
-    /* Neomorphic Headers */
-    .main-header {
-        font-size: 2.3rem !important;
-        font-weight: 800 !important;
-        letter-spacing: -0.03em !important;
-        color: #0F172A !important;
-        margin-bottom: 0.2rem !important;
-    }
-    .sub-header {
-        font-size: 0.98rem !important;
-        color: #475569 !important;
-        margin-bottom: 1.6rem !important;
-        font-weight: 500 !important;
-    }
-
-    /* Neomorphic Extruded Container Card */
-    .neo-card {
-        background: #EEF2F6;
-        border-radius: 16px;
-        box-shadow: 7px 7px 14px #d1d9e6, -7px -7px 14px #ffffff;
-        padding: 20px 24px;
-        margin-bottom: 18px;
-        border: 1px solid rgba(255, 255, 255, 0.7);
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-    .neo-card:hover {
-        box-shadow: 9px 9px 18px #c8d2e0, -9px -9px 18px #ffffff;
-    }
-
-    /* Neomorphic Metric Card */
-    div[data-testid="stMetric"] {
-        background: #EEF2F6 !important;
-        border-radius: 14px !important;
-        box-shadow: 6px 6px 12px #d1d9e6, -6px -6px 12px #ffffff !important;
-        padding: 14px 18px !important;
-        border: 1px solid rgba(255, 255, 255, 0.8) !important;
-    }
-    div[data-testid="stMetricLabel"] * {
-        color: #64748B !important;
-        font-size: 0.8rem !important;
-        font-weight: 600 !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.04em !important;
-    }
-    div[data-testid="stMetricValue"] * {
-        color: #0F172A !important;
-        font-size: 1.85rem !important;
-        font-weight: 800 !important;
-        letter-spacing: -0.02em !important;
-    }
-
-    /* Neomorphic Tabs */
+    /* === 4. PILL TABS NAVIGATION === */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 14px !important;
+        gap: 10px !important;
         background-color: transparent !important;
-        padding: 6px 0 !important;
+        padding: 4px 0 16px 0 !important;
         border-bottom: none !important;
     }
     .stTabs [data-baseweb="tab"] {
-        background-color: #EEF2F6 !important;
-        border-radius: 12px !important;
-        padding: 9px 22px !important;
-        font-weight: 600 !important;
-        font-size: 0.92rem !important;
-        color: #475569 !important;
-        box-shadow: 4px 4px 8px #d1d9e6, -4px -4px 8px #ffffff !important;
-        border: 1px solid rgba(255, 255, 255, 0.7) !important;
+        background-color: #FFFFFF !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 22px !important;
+        padding: 8px 22px !important;
+        font-weight: 500 !important;
+        font-size: 0.90rem !important;
+        color: #64748B !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+        transition: all 0.15s ease-in-out !important;
+    }
+    .stTabs [data-baseweb="tab"]:hover {
+        color: #1E293B !important;
+        border-color: #CBD5E1 !important;
     }
     .stTabs [aria-selected="true"] {
-        background-color: #EEF2F6 !important;
-        color: #2563EB !important;
-        box-shadow: inset 3px 3px 6px #d1d9e6, inset -3px -3px 6px #ffffff !important;
-        border: 1px solid rgba(37, 99, 235, 0.3) !important;
+        background-color: #6366F1 !important;
+        color: #FFFFFF !important;
         font-weight: 700 !important;
+        border-color: #6366F1 !important;
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3) !important;
     }
-    /* Remove red active line indicator */
+    /* Suppress default underline bar */
     .stTabs [data-baseweb="tab-highlight"],
     .stTabs [data-baseweb="tab-border"] {
         display: none !important;
     }
 
-    /* Crisp Light Input Fields */
+    /* === 5. WHITE CARDS, PANELS & CONTAINERS === */
+    .white-card {
+        background: #FFFFFF;
+        border: 1px solid #E3E7F0;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .white-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+    }
+    
+    .control-card {
+        background: #FFFFFF;
+        border: 1px solid #E3E7F0;
+        border-radius: 12px;
+        padding: 18px 20px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+    }
+    .control-card-header {
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #475569;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #F1F5F9;
+    }
+
+    /* === 6. INPUTS & FORM CONTROLS === */
     .stTextInput input,
-    .stTextArea textarea,
-    div[data-baseweb="textarea"] textarea,
-    div[data-baseweb="input"] input {
+    .stTextArea textarea {
         background-color: #FFFFFF !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 10px !important;
         color: #0F172A !important;
-        border: 1px solid #CBD5E1 !important;
-        border-radius: 12px !important;
-        box-shadow: inset 2px 2px 5px #e2e8f0, inset -2px -2px 5px #ffffff !important;
-        font-size: 0.95rem !important;
-        padding: 12px 14px !important;
+        font-family: 'Inter', sans-serif !important;
+        font-size: 0.92rem !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+        padding: 10px 14px !important;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
     }
     .stTextInput input:focus,
     .stTextArea textarea:focus {
-        border-color: #2563EB !important;
-        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2) !important;
+        border-color: #6366F1 !important;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18) !important;
         outline: none !important;
     }
-    .stTextInput input::placeholder,
-    .stTextArea textarea::placeholder {
-        color: #94A3B8 !important;
-    }
-    div[data-baseweb="textarea"],
-    div[data-baseweb="input"] {
-        background-color: transparent !important;
-        border: none !important;
-    }
-
-    /* Dropdowns / Selectboxes */
     div[data-baseweb="select"] > div {
         background-color: #FFFFFF !important;
-        color: #0F172A !important;
-        border: 1px solid #CBD5E1 !important;
-        border-radius: 12px !important;
-        box-shadow: 3px 3px 6px #d1d9e6, -3px -3px 6px #ffffff !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 10px !important;
     }
-    div[data-baseweb="select"] * {
-        color: #0F172A !important;
+    div[data-baseweb="select"] > div:focus-within {
+        border-color: #6366F1 !important;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18) !important;
+    }
+    
+    /* Primary Action Buttons */
+    button[kind="primary"] {
+        background-color: #6366F1 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        padding: 10px 20px !important;
+        box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25) !important;
+        transition: background-color 0.15s ease !important;
+    }
+    button[kind="primary"]:hover {
+        background-color: #4F46E5 !important;
     }
 
-    /* Radio buttons & Sliders */
-    div[data-testid="stRadio"] label,
-    div[data-testid="stRadio"] p,
-    div[data-testid="stRadio"] span {
-        color: #1E293B !important;
-        font-weight: 500 !important;
+    /* Slider Font Harmonization (Inter instead of monospace) */
+    div[data-testid="stSlider"] * {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
     }
-    div[data-testid="stSlider"] label,
-    div[data-testid="stSlider"] p,
-    div[data-testid="stSlider"] div {
-        color: #1E293B !important;
+    div[data-testid="stSlider"] div[data-testid="stTickBarMin"],
+    div[data-testid="stSlider"] div[data-testid="stTickBarMax"] {
+        font-size: 0.78rem !important;
+        color: #64748B !important;
     }
 
-    /* Difficulty Badges - Soft UI Extruded Pills */
-    .badge-neo {
+    /* === 7. MULTISELECT CHIPS (NO TRUNCATION) === */
+    div[data-baseweb="tag"] {
+        background-color: #EEF2FF !important;
+        border: 1px solid #C7D2FE !important;
+        border-radius: 16px !important;
+        max-width: 100% !important;
+        height: auto !important;
+        padding: 4px 10px !important;
+        margin: 3px !important;
+    }
+    div[data-baseweb="tag"] span {
+        color: #4338CA !important;
+        font-size: 0.82rem !important;
+        font-weight: 600 !important;
+        white-space: normal !important;
+        text-overflow: unset !important;
+        overflow: visible !important;
+    }
+    div[data-baseweb="tag"] svg {
+        fill: #6366F1 !important;
+    }
+
+    /* === 8. DIFFICULTY BADGES & SCORE PILLS === */
+    .badge-pill {
         display: inline-block;
         padding: 3px 10px;
-        border-radius: 20px;
-        font-size: 0.74rem;
+        border-radius: 14px;
+        font-size: 0.72rem;
         font-weight: 700;
         letter-spacing: 0.04em;
         text-transform: uppercase;
-        box-shadow: 2px 2px 5px #d1d9e6, -2px -2px 5px #ffffff;
     }
-    .badge-beginner {
-        background: #EEF2F6;
-        color: #0D9488;
-        border: 1px solid rgba(13, 148, 136, 0.35);
-    }
-    .badge-easy {
-        background: #EEF2F6;
-        color: #2563EB;
-        border: 1px solid rgba(37, 99, 235, 0.35);
-    }
-    .badge-medium {
-        background: #EEF2F6;
-        color: #D97706;
-        border: 1px solid rgba(217, 119, 6, 0.35);
-    }
-    .badge-hard {
-        background: #EEF2F6;
-        color: #DC2626;
-        border: 1px solid rgba(220, 38, 38, 0.35);
-    }
-    .badge-challenge {
-        background: #EEF2F6;
-        color: #7C3AED;
-        border: 1px solid rgba(124, 58, 237, 0.35);
-    }
+    .badge-beginner  { background: #DCFCE7; color: #15803D; border: 1px solid #BBF7D0; }
+    .badge-easy      { background: #E0F2FE; color: #0369A1; border: 1px solid #BAE6FD; }
+    .badge-medium    { background: #FEF3C7; color: #B45309; border: 1px solid #FDE68A; }
+    .badge-hard      { background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; }
+    .badge-challenge { background: #F3E8FF; color: #7E22CE; border: 1px solid #E9D5FF; }
 
-    /* Inset Score & Tag Indicators */
-    .pill-inset {
+    .score-pill {
         display: inline-block;
         padding: 3px 10px;
-        border-radius: 20px;
-        font-size: 0.78rem;
-        font-weight: 600;
-        background: #EEF2F6;
-        color: #334155;
-        box-shadow: inset 2px 2px 4px #d1d9e6, inset -2px -2px 4px #ffffff;
-        border: 1px solid rgba(255, 255, 255, 0.5);
-    }
-
-    /* Soft UI Comparison Cards */
-    .comp-box {
-        background: #EEF2F6;
         border-radius: 14px;
-        padding: 14px 18px;
-        margin-bottom: 12px;
-        box-shadow: 4px 4px 9px #d1d9e6, -4px -4px 9px #ffffff;
-        border: 1px solid rgba(255, 255, 255, 0.7);
+        font-size: 0.76rem;
+        font-weight: 600;
+        background: #EEF2FF;
+        color: #4338CA;
+        border: 1px solid #C7D2FE;
     }
-    .comp-box-kw { border-left: 4px solid #64748B; }
-    .comp-box-sem { border-left: 4px solid #059669; }
-    .comp-box-both { border-left: 4px solid #2563EB; }
 
-    /* Expanders styling */
-    div[data-testid="stExpander"] {
-        background: #EEF2F6;
+    /* === 9. MODE COMPARISON METRIC CARDS (COLORED TOP BORDERS) === */
+    .comp-metric-card {
+        background: #FFFFFF;
         border-radius: 12px;
-        box-shadow: 3px 3px 6px #d1d9e6, -3px -3px 6px #ffffff;
-        border: 1px solid rgba(255, 255, 255, 0.6);
-        margin-top: 8px;
+        padding: 14px 18px;
+        border: 1px solid #E3E7F0;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    }
+    .comp-metric-1 { border-top: 3px solid #6366F1; } /* Indigo */
+    .comp-metric-2 { border-top: 3px solid #14B8A6; } /* Teal */
+    .comp-metric-3 { border-top: 3px solid #F59E0B; } /* Amber */
+    .comp-metric-label {
+        color: #64748B;
+        font-size: 0.76rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .comp-metric-val {
+        color: #0F172A;
+        font-size: 1.7rem;
+        font-weight: 800;
+        margin-top: 2px;
+    }
+
+    /* Side-by-Side Result Card Accents */
+    .mode-card {
+        background: #FFFFFF;
+        border: 1px solid #E3E7F0;
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-bottom: 10px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    }
+    .mode-card-kw   { border-left: 4px solid #94A3B8; }
+    .mode-card-sem  { border-left: 4px solid #14B8A6; }
+    .mode-card-both { border-left: 4px solid #6366F1; }
+
+    /* === 10. PROBLEM PREVIEW SECTION LABELS & EXPANDERS === */
+    div[data-testid="stExpander"] {
+        background: #FFFFFF !important;
+        border-radius: 10px !important;
+        border: 1px solid #E3E7F0 !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+        margin-top: 8px !important;
+    }
+    div[data-testid="stExpander"] summary {
+        padding: 8px 14px !important;
     }
     div[data-testid="stExpander"] summary * {
-        color: #1E293B !important;
+        color: #475569 !important;
+        font-size: 0.85rem !important;
         font-weight: 600 !important;
+    }
+    .preview-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #64748B;
+        margin-top: 14px;
+        margin-bottom: 4px;
+        padding-bottom: 2px;
+        border-bottom: 1px solid #F1F5F9;
     }
 </style>
 """, unsafe_allow_html=True)
 
+# ----------------- DATA LOADER -----------------
 @st.cache_resource(show_spinner="Loading problem index and models...")
 def load_app_data():
     data_path = "out/problems_clustered.csv"
@@ -307,9 +374,9 @@ def load_app_data():
 
 df, emb, coords, searcher, raw_map = load_app_data()
 
-import re
+# ----------------- LATEX & STATEMENT FORMATTER -----------------
 def render_problem_latex(raw_text):
-    """Format problem statement with KaTeX LaTeX math and clean structured layout."""
+    """Format problem statement with KaTeX LaTeX math, small uppercase labels, and clean code blocks."""
     if not raw_text or pd.isna(raw_text):
         return "No statement text available."
     t = str(raw_text)
@@ -318,22 +385,23 @@ def render_problem_latex(raw_text):
     t = re.sub(r'<[^>]+>', ' ', t)
     t = re.sub(r'(?i)all submissions for this problem are available\.?', '', t)
     t = re.sub(r'(?i)read problems? statements? in [^.]*?(?:as well|here)\s*\.?|read problems? statements? in [^.]*\.', '', t)
-
-    # Strip jquery/javascript snippets
     t = re.sub(r'\$\([^\)]*\)\.html\([^\)]*\);?', '', t)
     t = re.sub(r'\$\.ajax\(\{.*?\}\);?', '', t, flags=re.DOTALL)
     t = re.sub(r'Here is where you can show off your computer programming skills.*', '', t, flags=re.DOTALL)
 
-    # 2. Section Headings
-    t = re.sub(r'(?m)^\s*(Input\s*format|Input)\s*:?\s*$', '\n\n**Input Format**\n', t, flags=re.I)
-    t = re.sub(r'(?m)^\s*(Output\s*format|Output)\s*:?\s*$', '\n\n**Output Format**\n', t, flags=re.I)
-    t = re.sub(r'(?m)^\s*(Constraints|Test\s*data)\s*:?\s*$', '\n\n**Constraints**\n', t, flags=re.I)
-    t = re.sub(r'(?m)^\s*(Example|Sample\s*test\s*cases?)\s*:?\s*$', '\n\n**Example**\n', t, flags=re.I)
-    t = re.sub(r'(?m)^\s*(Sample\s*Input|Input\s*:)\s*$', '\n*Sample Input:*\n', t, flags=re.I)
-    t = re.sub(r'(?m)^\s*(Sample\s*Output|Output\s*:)\s*$', '\n*Sample Output:*\n', t, flags=re.I)
-    t = re.sub(r'(?m)^\s*(Explanation)\s*:?\s*$', '\n\n**Explanation**\n', t, flags=re.I)
+    # 2. Format Sample Input / Output code blocks
+    t = re.sub(r'(?i)\b(?:sample\s*input|example\s*input)\s*:?\s*\n+((?:[ \t]*\S+[^\n]*\n*)+?)(?=\n*(?:sample\s*output|output\s*:|explanation|\Z))', 
+               lambda m: '\n<div class="preview-label">SAMPLE INPUT</div>\n\n```\n' + m.group(1).strip() + '\n```\n', t)
+    t = re.sub(r'(?i)\b(?:sample\s*output|example\s*output)\s*:?\s*\n+((?:[ \t]*\S+[^\n]*\n*)+?)(?=\n*(?:explanation|constraints|\Z))', 
+               lambda m: '\n<div class="preview-label">SAMPLE OUTPUT</div>\n\n```\n' + m.group(1).strip() + '\n```\n', t)
 
-    # 3. Convert math inequalities and notation to KaTeX LaTeX
+    # 3. Small uppercase section labels
+    t = re.sub(r'(?m)^\s*(?:Input\s*format|Input)\s*:?\s*$', '\n<div class="preview-label">INPUT FORMAT</div>\n', t, flags=re.I)
+    t = re.sub(r'(?m)^\s*(?:Output\s*format|Output)\s*:?\s*$', '\n<div class="preview-label">OUTPUT FORMAT</div>\n', t, flags=re.I)
+    t = re.sub(r'(?m)^\s*(?:Constraints|Test\s*data)\s*:?\s*$', '\n<div class="preview-label">CONSTRAINTS</div>\n', t, flags=re.I)
+    t = re.sub(r'(?m)^\s*(?:Explanation)\s*:?\s*$', '\n<div class="preview-label">EXPLANATION</div>\n', t, flags=re.I)
+
+    # 4. Convert math inequalities and notation to KaTeX LaTeX
     def double_ineq(m):
         lo, v, hi = m.group(1), m.group(2).strip(), m.group(3)
         v = re.sub(r'\b([A-Za-z])(\d)\b', r'\1_\2', v)
@@ -352,41 +420,50 @@ def render_problem_latex(raw_text):
         return f"${v} \\ge {val}$"
     t = re.sub(r'([A-Za-z][A-Za-z0-9_]*)\s*(?:≥|>=)\s*(\d+(?:\^\{\d+\}|\^\d+)?)', single_ge, t)
 
-    # Variables with single-digit subscripts: N1, N2, N3, Ai when isolated
     t = re.sub(r'(?<![A-Za-z0-9_\$\\])\b([NnMmA-Z])(\d)\b(?![A-Za-z0-9_\$])', r'$\1_\2$', t)
-
-    # Powers: 10^5 -> $10^5$, 10^9 -> $10^9$
     t = re.sub(r'(?<!\$)\b10\^(\d+)\b(?!\$)', r'$10^{\1}$', t)
-
-    # Big-O notation: O(N log N) -> $\mathcal{O}(N \log N)$
     t = re.sub(r'\bO\(([NnMKk][\w\s\*\+\-\^\(\)\/]*)\)', r'$\\mathcal{O}(\1)$', t)
 
-    # Clean redundant blank lines
     t = re.sub(r'\n{3,}', '\n\n', t)
     return t.strip()
 
-
-# Sidebar
+# ----------------- SIDEBAR -----------------
 with st.sidebar:
-    st.markdown("### **Deja Code**")
-    st.caption("Competitive Programming Semantic Search & Recommendations")
-    st.divider()
+    st.markdown("""
+    <div style="margin-bottom: 1.2rem;">
+        <h2 style="color: #FFFFFF; margin: 0; font-size: 1.55rem; font-weight: 800; letter-spacing: -0.02em;">Deja Code</h2>
+        <p style="color: #94A3B8; margin-top: 3px; font-size: 0.82rem; font-weight: 500;">Competitive Programming Search & Recs</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown('<div style="height: 1px; background: rgba(255,255,255,0.12); margin-bottom: 1.2rem;"></div>', unsafe_allow_html=True)
+    
     if df is not None:
         st.metric("Problems Indexed", f"{len(df):,}")
         clusters_count = df["cluster"].nunique() if "cluster" in df.columns else 0
         st.metric("Concept Clusters", f"{clusters_count}")
         st.metric("Total Submissions Indexed", f"{df['total_submissions'].sum():,}")
-    st.divider()
-    st.markdown("Engineered with **Sentence-Transformers**, **scikit-learn**, **UMAP**, and **Streamlit**.")
-    st.markdown("[GitHub Repository](https://github.com/visshalb2007/dejacode)")
+    
+    st.markdown("""
+    <div style="margin-top: 2.2rem; padding-top: 1.2rem; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.74rem; color: #94A3B8; line-height: 1.5;">
+        Engineered with Sentence-Transformers, scikit-learn, UMAP, and Streamlit.<br>
+        <a href="https://github.com/visshalb2007/dejacode" target="_blank" style="color: #818CF8; text-decoration: none; font-weight: 600;">GitHub Repository</a>
+    </div>
+    """, unsafe_allow_html=True)
 
-st.markdown('<div class="main-header">Deja Code</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Algorithmic semantic search, topic clustering, and difficulty progression for CodeChef problems</div>', unsafe_allow_html=True)
+# ----------------- MAIN HEADER (NON-REDUNDANT) -----------------
+st.markdown("""
+<div style="margin-bottom: 1.4rem;">
+    <h1 style="font-size: 1.85rem; font-weight: 800; color: #0F172A; margin: 0; letter-spacing: -0.02em;">Problem Search & Recommendations</h1>
+    <p style="font-size: 0.93rem; color: #64748B; margin-top: 4px; margin-bottom: 0;">Algorithmic similarity discovery, topic clustering, and adaptive difficulty progression for CodeChef</p>
+</div>
+""", unsafe_allow_html=True)
 
 if searcher is None:
     st.error("Index artifacts not found in out/. Please run python dejacode.py --data data/questions.csv --k 12 first.")
     st.stop()
 
+# ----------------- TABS -----------------
 tabs = st.tabs([
     "Search & Discovery",
     "Mode Comparison",
@@ -396,8 +473,6 @@ tabs = st.tabs([
 
 # ----------------- TAB 1: Search & Discovery -----------------
 with tabs[0]:
-    st.subheader("Semantic & Hybrid Problem Search")
-    
     sample_queries = [
         "-- Select an example query or type your own below --",
         "Shortest path in a weighted directed acyclic graph with obstacles",
@@ -407,20 +482,30 @@ with tabs[0]:
         "Count inversions in an array using merge sort or Fenwick tree",
         "Nim game with piles of stones game theory optimal strategy"
     ]
-    selected_sample = st.selectbox("Preset Example Queries", sample_queries)
-    default_q = "" if selected_sample.startswith("--") else selected_sample
     
-    col_q, col_opt = st.columns([3, 1])
-    with col_q:
-        q = st.text_area("Problem description, story, or algorithm keywords:", value=default_q, height=100, placeholder="Paste a problem statement or describe the underlying algorithmic task...")
+    col_left, col_right = st.columns([2, 1])
     
-    with col_opt:
+    with col_left:
+        selected_sample = st.selectbox("Preset Example Queries", sample_queries)
+        default_q = "" if selected_sample.startswith("--") else selected_sample
+        q = st.text_area(
+            "Problem description, story, or algorithm keywords:",
+            value=default_q,
+            height=140,
+            placeholder="Paste a problem statement or describe the underlying algorithmic task..."
+        )
+        search_clicked = st.button("Search Problems", type="primary", use_container_width=True)
+
+    with col_right:
+        st.markdown('<div class="control-card">', unsafe_allow_html=True)
+        st.markdown('<div class="control-card-header">Search Controls</div>', unsafe_allow_html=True)
         mode = st.radio("Search Mode", ["hybrid", "semantic", "keyword"], index=0)
         alpha = 0.65
         if mode == "hybrid":
             alpha = st.slider("Dense / Sparse Weight (alpha)", 0.0, 1.0, 0.65, 0.05, help="1.0 = Pure Semantic Dense, 0.0 = Pure Sparse Keyword")
         k_results = st.slider("Max Results", 3, 20, 5)
         diff_filter = st.selectbox("Difficulty Filter", ["All"] + DIFF_ORDER)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     if q.strip():
         scores = searcher.scores(q, mode=mode, alpha=alpha)
@@ -434,7 +519,7 @@ with tabs[0]:
         
         top_k = results_df.head(k_results)
         
-        st.markdown(f"#### Top {len(top_k)} Matching Problems ({mode} mode)")
+        st.markdown(f'<div style="margin: 20px 0 12px 0; font-size: 1.05rem; font-weight: 700; color: #0F172A;">Top {len(top_k)} Matching Problems ({mode} mode)</div>', unsafe_allow_html=True)
         
         for _, row in top_k.iterrows():
             diff = str(row.get("difficulty", "medium")).lower()
@@ -444,30 +529,31 @@ with tabs[0]:
             
             with st.container():
                 st.markdown(f"""
-                <div class="neo-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <h4 style="margin: 0; color: #0F172A;">
-                            <a href="{codechef_link}" target="_blank" style="text-decoration: none; color: #2563EB;">{row.get('title', 'Unknown')}</a>
-                            <span style="font-size: 0.85rem; color: #64748B; font-weight: normal;">({row.get('qcode', 'N/A')})</span>
-                        </h4>
+                <div class="white-card">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                         <div>
-                            <span class="badge-neo {badge_class}">{diff.upper()}</span>
-                            <span class="pill-inset" style="margin-left: 8px;">Score: {row['score']:.3f}</span>
+                            <h4 style="margin: 0; font-size: 1.02rem;">
+                                <a href="{codechef_link}" target="_blank" style="text-decoration: none; color: #4338CA;">{row.get('title', 'Unknown')}</a>
+                                <span style="font-size: 0.82rem; color: #64748B; font-weight: normal; margin-left: 6px;">({row.get('qcode', 'N/A')})</span>
+                            </h4>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="badge-pill {badge_class}">{diff.upper()}</span>
+                            <span class="score-pill">Score: {row['score']:.3f}</span>
                         </div>
                     </div>
-                    <div style="margin-top: 10px; font-size: 0.88rem; color: #475569;">
-                        <strong>Tags:</strong> {tags_str} | 
+                    <div style="margin-top: 8px; font-size: 0.84rem; color: #64748B;">
+                        <strong>Tags:</strong> {tags_str} &nbsp;|&nbsp; 
                         <strong>Cluster:</strong> {row.get('cluster_label', 'N/A')}
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
                 with st.expander("Preview Problem Statement"):
                     stmt_raw = raw_map.get(str(row.get("qcode", ""))) or row.get("text", "No statement text available.")
-                    st.markdown(render_problem_latex(stmt_raw))
+                    st.markdown(render_problem_latex(stmt_raw), unsafe_allow_html=True)
 
 # ----------------- TAB 2: Mode Comparison -----------------
 with tabs[1]:
-    st.subheader("Side-by-Side Mode Comparison: Sparse vs Dense")
     st.caption("Directly contrast Sparse Keyword (TF-IDF) against Dense Semantic (all-MiniLM-L6-v2) on the same input.")
 
     comp_query = st.text_input(
@@ -492,61 +578,83 @@ with tabs[1]:
         common = kw_codes & sem_codes
         jaccard = len(common) / len(kw_codes | sem_codes) if (kw_codes | sem_codes) else 0.0
 
+        # Three metric cards with custom colored top borders
         m_col1, m_col2, m_col3 = st.columns(3)
         with m_col1:
-            st.metric("Shared Problems in Top-K", f"{len(common)} / {k_comp}")
+            st.markdown(f"""
+            <div class="comp-metric-card comp-metric-1">
+                <div class="comp-metric-label">Shared Problems in Top-K</div>
+                <div class="comp-metric-val">{len(common)} / {k_comp}</div>
+            </div>
+            """, unsafe_allow_html=True)
         with m_col2:
-            st.metric("Jaccard Similarity Overlap", f"{jaccard:.2f}")
+            st.markdown(f"""
+            <div class="comp-metric-card comp-metric-2">
+                <div class="comp-metric-label">Jaccard Similarity Overlap</div>
+                <div class="comp-metric-val">{jaccard:.2f}</div>
+            </div>
+            """, unsafe_allow_html=True)
         with m_col3:
-            st.metric("Novel Semantic Discoveries", f"{len(sem_codes - kw_codes)}")
+            st.markdown(f"""
+            <div class="comp-metric-card comp-metric-3">
+                <div class="comp-metric-label">Novel Semantic Discoveries</div>
+                <div class="comp-metric-val">{len(sem_codes - kw_codes)}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
+        st.markdown('<div style="height: 18px;"></div>', unsafe_allow_html=True)
         c_left, c_right = st.columns(2)
 
         with c_left:
-            st.markdown("#### Sparse Keyword (TF-IDF)")
+            st.markdown('<div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">Sparse Keyword (TF-IDF)</div>', unsafe_allow_html=True)
             st.caption("Matches exact word tokens (often distracted by narrative words like Chef, city, game).")
             for rank, (_, row) in enumerate(kw_df.iterrows(), 1):
                 is_shared = row["qcode"] in common
-                box_class = "comp-box comp-box-both" if is_shared else "comp-box comp-box-kw"
-                shared_tag = " <span class='pill-inset' style='color: #2563EB;'>In Both</span>" if is_shared else ""
+                card_class = "mode-card mode-card-both" if is_shared else "mode-card mode-card-kw"
+                shared_tag = " <span class='score-pill' style='margin-left: 6px;'>In Both</span>" if is_shared else ""
                 diff = str(row.get("difficulty", "medium")).lower()
                 badge_class = f"badge-{diff}" if diff in DIFF_ORDER else "badge-medium"
                 link = f"https://www.codechef.com{row['link']}" if str(row.get("link", "")).startswith("/") else f"https://www.codechef.com/problems/{row.get('qcode', '')}"
                 
                 st.markdown(f"""
-                <div class="{box_class}">
-                    <div style="font-weight: 600;">#{rank}. <a href="{link}" target="_blank" style="text-decoration: none; color: #1E293B;">{row['title']}</a> <span style="font-size: 0.85rem; color: #64748B;">({row['qcode']})</span>{shared_tag}</div>
-                    <div style="font-size: 0.82rem; color: #64748B; margin-top: 6px;">
-                        <span class="badge-neo {badge_class}">{diff.upper()}</span>
-                        <span class="pill-inset" style="margin-left: 6px;">Score: {row['score']:.3f}</span>
+                <div class="{card_class}">
+                    <div style="font-weight: 600;">
+                        #{rank}. <a href="{link}" target="_blank" style="text-decoration: none; color: #1E293B;">{row['title']}</a> 
+                        <span style="font-size: 0.82rem; color: #64748B;">({row['qcode']})</span>{shared_tag}
+                    </div>
+                    <div style="font-size: 0.82rem; color: #64748B; margin-top: 6px; display: flex; align-items: center; gap: 8px;">
+                        <span class="badge-pill {badge_class}">{diff.upper()}</span>
+                        <span class="score-pill">Score: {row['score']:.3f}</span>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
 
         with c_right:
-            st.markdown("#### Dense Semantic (MiniLM-L6-v2)")
+            st.markdown('<div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">Dense Semantic (MiniLM-L6-v2)</div>', unsafe_allow_html=True)
             st.caption("Matches conceptual problem meaning and algorithm abstraction across disparate stories.")
             for rank, (_, row) in enumerate(sem_df.iterrows(), 1):
                 is_shared = row["qcode"] in common
-                box_class = "comp-box comp-box-both" if is_shared else "comp-box comp-box-sem"
-                shared_tag = " <span class='pill-inset' style='color: #2563EB;'>In Both</span>" if is_shared else " <span class='pill-inset' style='color: #059669;'>Semantic Match</span>"
+                card_class = "mode-card mode-card-both" if is_shared else "mode-card mode-card-sem"
+                shared_tag = " <span class='score-pill' style='margin-left: 6px;'>In Both</span>" if is_shared else " <span class='badge-pill badge-beginner' style='margin-left: 6px;'>Semantic Match</span>"
                 diff = str(row.get("difficulty", "medium")).lower()
                 badge_class = f"badge-{diff}" if diff in DIFF_ORDER else "badge-medium"
                 link = f"https://www.codechef.com{row['link']}" if str(row.get("link", "")).startswith("/") else f"https://www.codechef.com/problems/{row.get('qcode', '')}"
 
                 st.markdown(f"""
-                <div class="{box_class}">
-                    <div style="font-weight: 600;">#{rank}. <a href="{link}" target="_blank" style="text-decoration: none; color: #1E293B;">{row['title']}</a> <span style="font-size: 0.85rem; color: #64748B;">({row['qcode']})</span>{shared_tag}</div>
-                    <div style="font-size: 0.82rem; color: #64748B; margin-top: 6px;">
-                        <span class="badge-neo {badge_class}">{diff.upper()}</span>
-                        <span class="pill-inset" style="margin-left: 6px;">Score: {row['score']:.3f}</span>
+                <div class="{card_class}">
+                    <div style="font-weight: 600;">
+                        #{rank}. <a href="{link}" target="_blank" style="text-decoration: none; color: #1E293B;">{row['title']}</a> 
+                        <span style="font-size: 0.82rem; color: #64748B;">({row['qcode']})</span>{shared_tag}
+                    </div>
+                    <div style="font-size: 0.82rem; color: #64748B; margin-top: 6px; display: flex; align-items: center; gap: 8px;">
+                        <span class="badge-pill {badge_class}">{diff.upper()}</span>
+                        <span class="score-pill">Score: {row['score']:.3f}</span>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
 
 # ----------------- TAB 3: Cluster Manifold -----------------
 with tabs[2]:
-    st.subheader("2D Semantic Problem Map & Cluster Exploration")
     st.caption("Nonlinear 2D projection (UMAP) of dense problem embeddings with discovered thematic clusters.")
     
     if coords is not None and "cluster_label" in df.columns:
@@ -573,8 +681,31 @@ with tabs[2]:
             
         color_col = "cluster_label" if color_choice == "Cluster" else "difficulty"
         
+        # Difficulty color mapping consistent with badges
+        DIFF_COLOR_MAP = {
+            "beginner": "#10B981", # Green
+            "easy": "#0EA5E9",     # Cyan
+            "medium": "#F59E0B",   # Amber
+            "hard": "#EF4444",     # Red
+            "challenge": "#8B5CF6" # Purple
+        }
+        
+        # Vivid categorical palette for clusters
+        CLUSTER_VIVID_PALETTE = [
+            "#6366F1", "#14B8A6", "#F59E0B", "#EC4899", 
+            "#3B82F6", "#10B981", "#8B5CF6", "#F97316", 
+            "#06B6D4", "#E11D48", "#84CC16", "#A855F7"
+        ]
+        
         fig = go.Figure()
+        group_idx = 0
         for cat_name, sub in filtered_plot.groupby(color_col):
+            if color_choice == "Difficulty":
+                marker_color = DIFF_COLOR_MAP.get(str(cat_name).lower(), "#64748B")
+            else:
+                marker_color = CLUSTER_VIVID_PALETTE[group_idx % len(CLUSTER_VIVID_PALETTE)]
+                group_idx += 1
+                
             hover_texts = [
                 f"<b>{row['title']}</b> ({row['qcode']})<br>"
                 f"Difficulty: {str(row['difficulty']).upper()}<br>"
@@ -589,24 +720,25 @@ with tabs[2]:
                 name=str(cat_name),
                 text=hover_texts,
                 hoverinfo="text",
-                marker=dict(size=7, opacity=0.82)
+                marker=dict(size=7, opacity=0.85, color=marker_color)
             ))
             
         fig.update_layout(
             title=f"2D Problem Semantic Space ({len(filtered_plot):,} problems shown)",
-            height=620,
-            paper_bgcolor="#EEF2F6",
-            plot_bgcolor="#EEF2F6",
-            legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="center", x=0.5),
-            margin=dict(l=20, r=20, t=40, b=80),
-            xaxis=dict(title="UMAP Component 1", showgrid=True, gridcolor="#E2E8F0"),
-            yaxis=dict(title="UMAP Component 2", showgrid=True, gridcolor="#E2E8F0")
+            height=580,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            template="plotly_white",
+            legend=dict(orientation="h", yanchor="bottom", y=-0.28, xanchor="center", x=0.5),
+            margin=dict(l=10, r=10, t=35, b=60),
+            xaxis=dict(title="UMAP Component 1", showgrid=True, gridcolor="#E2E8F0", zeroline=False),
+            yaxis=dict(title="UMAP Component 2", showgrid=True, gridcolor="#E2E8F0", zeroline=False)
         )
         st.plotly_chart(fig, use_container_width=True)
         
         summary_path = "out/cluster_summary.csv"
         if os.path.exists(summary_path):
-            st.markdown("#### Cluster Profiles & Exemplar Medoids")
+            st.markdown('<div style="font-size: 1.05rem; font-weight: 700; color: #0F172A; margin: 18px 0 10px 0;">Cluster Profiles & Exemplar Medoids</div>', unsafe_allow_html=True)
             sum_df = pd.read_csv(summary_path)
             st.dataframe(
                 sum_df[["cluster_id", "top_topic_tags", "top_tfidf_terms", "size", "exemplar_1", "exemplar_2"]],
@@ -646,7 +778,6 @@ with tabs[2]:
 
 # ----------------- TAB 4: Recommendations -----------------
 with tabs[3]:
-    st.subheader("Adaptive Concept & Difficulty Progression")
     st.caption("Select problems you have solved to get concept-aligned recommendations calibrated to your target difficulty level.")
 
     @st.cache_data(show_spinner=False)
@@ -661,13 +792,18 @@ with tabs[3]:
 
     sol_map = get_accepted_solution_map()
 
-    col_rec_in, col_rec_opt = st.columns([3, 1])
+    # Controls Container Card
+    st.markdown('<div class="control-card">', unsafe_allow_html=True)
+    st.markdown('<div class="control-card-header">Select Solved Problems & Progression Goal</div>', unsafe_allow_html=True)
+    
+    preset = st.radio("Quick History Presets", ["None", "Beginner: FLOW017, CFRTEST", "Easy: SUMPAIR, CHEFLCM", "Medium: ANDTUPLE, DIVSUBS"], horizontal=True)
+    
+    col_rec_in, col_rec_opt = st.columns([2, 1])
 
     with col_rec_in:
         problem_options = [f"{row['qcode']} | {row['title']} ({str(row.get('difficulty', 'medium')).capitalize()})" for _, row in df.iterrows()]
         default_selected = [problem_options[0], problem_options[1]] if len(problem_options) >= 2 else []
         
-        preset = st.radio("Quick History Presets", ["None", "Beginner: FLOW017, CFRTEST", "Easy: SUMPAIR, CHEFLCM", "Medium: ANDTUPLE, DIVSUBS"], horizontal=True)
         if "FLOW017" in preset:
             pre_selected = [opt for opt in problem_options if "FLOW017" in opt or "CFRTEST" in opt]
         elif "SUMPAIR" in preset:
@@ -696,12 +832,18 @@ with tabs[3]:
         step_val = 1 if "+1" in step_choice else (0 if "0" in step_choice else -1)
         k_recs = st.slider("Recommendations Count", 3, 10, 5)
 
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Clearly separated recommendations section
+    st.markdown('<div style="height: 24px;"></div>', unsafe_allow_html=True)
+
     if selected_problems:
         solved_codes = [p.split(" | ")[0].strip() for p in selected_problems]
         recs_df = recommend_next(solved_codes, df, emb, k=k_recs, step=step_val)
 
         if not recs_df.empty:
-            st.markdown(f"#### Recommended Next Problems ({recs_df.iloc[0]['difficulty'].upper()} tier)")
+            target_tier_name = recs_df.iloc[0]['difficulty'].upper()
+            st.markdown(f'<div style="font-size: 1.15rem; font-weight: 700; color: #0F172A; margin-bottom: 14px;">Recommended Next Problems ({target_tier_name} tier)</div>', unsafe_allow_html=True)
 
             for idx, (_, rec) in enumerate(recs_df.iterrows(), 1):
                 diff = str(rec.get("difficulty", "medium")).lower()
@@ -714,19 +856,21 @@ with tabs[3]:
 
                 with st.container():
                     st.markdown(f"""
-                    <div class="neo-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <h4 style="margin: 0;">
-                                #{idx}. <a href="{link}" target="_blank" style="text-decoration: none; color: #2563EB;">{rec.get('title', 'Unknown')}</a>
-                                <span style="font-size: 0.85rem; color: #64748B; font-weight: normal;">({rec.get('qcode', 'N/A')})</span>
-                            </h4>
+                    <div class="white-card">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <div>
-                                <span class="badge-neo {badge_class}">{diff.upper()}</span>
-                                <span class="pill-inset" style="margin-left: 8px;">Concept Sim: {rec.get('similarity', 0.0):.3f}</span>
+                                <h4 style="margin: 0; font-size: 1.02rem;">
+                                    #{idx}. <a href="{link}" target="_blank" style="text-decoration: none; color: #4338CA;">{rec.get('title', 'Unknown')}</a>
+                                    <span style="font-size: 0.82rem; color: #64748B; font-weight: normal; margin-left: 6px;">({rec.get('qcode', 'N/A')})</span>
+                                </h4>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="badge-pill {badge_class}">{diff.upper()}</span>
+                                <span class="score-pill">Concept Sim: {rec.get('similarity', 0.0):.3f}</span>
                             </div>
                         </div>
-                        <div style="margin-top: 10px; font-size: 0.88rem; color: #475569;">
-                            <strong>Tags:</strong> {tags_str} |
+                        <div style="margin-top: 8px; font-size: 0.84rem; color: #64748B;">
+                            <strong>Tags:</strong> {tags_str} &nbsp;|&nbsp;
                             <strong>Acceptance Rate:</strong> {acc_rate} ({accepted_n} / {subs_n} accepted)
                         </div>
                     </div>
