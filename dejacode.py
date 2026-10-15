@@ -71,6 +71,9 @@ def preprocess(df):
     return out
 
 # ---------- Solution & Code helpers ----------
+DIFF_ORDER = ["beginner", "easy", "medium", "hard", "challenge"]
+DIFF_MAP = {level: i for i, level in enumerate(DIFF_ORDER)}
+
 def get_solution_stats(solutions_path="data/solutions.csv"):
     """Return DataFrame indexed by QCode with total_submissions, accepted_count, acceptance_rate."""
     if not os.path.exists(solutions_path):
@@ -81,6 +84,17 @@ def get_solution_stats(solutions_path="data/solutions.csv"):
     stats = pd.concat([total, acc], axis=1).fillna(0).astype({"total_submissions": int, "accepted_count": int})
     stats["acceptance_rate"] = (stats["accepted_count"] / stats["total_submissions"].clip(lower=1)).round(3)
     return stats
+
+def attach_solution_stats(df, solutions_path="data/solutions.csv"):
+    """Enrich dataframe with accepted_count and acceptance_rate from solutions.csv."""
+    stats = get_solution_stats(solutions_path)
+    if not stats.empty and "qcode" in df.columns:
+        merged = df.merge(stats, left_on="qcode", right_index=True, how="left")
+        merged["total_submissions"] = merged["total_submissions"].fillna(0).astype(int)
+        merged["accepted_count"] = merged["accepted_count"].fillna(0).astype(int)
+        merged["acceptance_rate"] = merged["acceptance_rate"].fillna(0.0)
+        return merged
+    return df
 
 def get_code_snippet(solution_id, codes_dir="data/program_codes", max_chars=1200):
     """Retrieve solution code snippet by SolutionID without loading all code into memory."""
