@@ -45,12 +45,6 @@ st.markdown("""
         background: transparent !important;
         padding-top: 1.8rem !important;
     }
-    section[data-testid="stSidebar"] * {
-        color: #F8FAFC !important;
-    }
-    section[data-testid="stSidebar"] .stCaption {
-        color: #94A3B8 !important;
-    }
     section[data-testid="stSidebar"] hr {
         border-color: rgba(255, 255, 255, 0.12) !important;
         margin: 1.2rem 0 !important;
@@ -79,23 +73,63 @@ st.markdown("""
         font-weight: 700 !important;
     }
 
-    /* === 3. TYPOGRAPHY & HEADINGS === */
-    h1, h2, h3, h4, h5, h6,
-    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3, .stMarkdown h4, .stMarkdown h5, .stMarkdown h6 {
+    /* === 3. TYPOGRAPHY & HEADINGS (SCOPED TO MAIN AREA) === */
+    .main h1, .main h2, .main h3, .main h4, .main h5, .main h6,
+    .main .stMarkdown h1, .main .stMarkdown h2, .main .stMarkdown h3, .main .stMarkdown h4,
+    [data-testid="stMain"] h1, [data-testid="stMain"] h2, [data-testid="stMain"] h3,
+    [data-testid="stAppViewContainer"] > section:not([data-testid="stSidebar"]) h1,
+    [data-testid="stAppViewContainer"] > section:not([data-testid="stSidebar"]) h2 {
         color: #0F172A !important;
         font-weight: 700 !important;
         font-family: 'Inter', sans-serif !important;
     }
-    p, span, label,
-    .stMarkdown p,
+    .main p, .main span, .main label,
+    .main .stMarkdown p,
+    [data-testid="stMain"] p, [data-testid="stMain"] span,
+    [data-testid="stAppViewContainer"] > section:not([data-testid="stSidebar"]) p,
     [data-testid="stWidgetLabel"] label,
     [data-testid="stWidgetLabel"] p {
         color: #334155 !important;
         font-family: 'Inter', sans-serif !important;
     }
-    .stCaption {
+    .main .stCaption, [data-testid="stMain"] .stCaption {
         color: #64748B !important;
         font-size: 0.88rem !important;
+    }
+
+    /* === SIDEBAR TYPOGRAPHY SPECIFIC OVERRIDES === */
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3,
+    section[data-testid="stSidebar"] h4,
+    section[data-testid="stSidebar"] .stMarkdown h1,
+    section[data-testid="stSidebar"] .stMarkdown h2,
+    section[data-testid="stSidebar"] .stMarkdown h3,
+    section[data-testid="stSidebar"] .stMarkdown h4,
+    section[data-testid="stSidebar"] .sidebar-title {
+        color: #FFFFFF !important;
+        font-family: 'Inter', sans-serif !important;
+    }
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] span,
+    section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] .stMarkdown p,
+    section[data-testid="stSidebar"] .sidebar-subtitle {
+        color: #CBD5E1 !important;
+        font-family: 'Inter', sans-serif !important;
+    }
+    section[data-testid="stSidebar"] .sidebar-footer {
+        color: #94A3B8 !important;
+        font-size: 0.74rem !important;
+        line-height: 1.5 !important;
+    }
+    section[data-testid="stSidebar"] .sidebar-footer a {
+        color: #818CF8 !important;
+        text-decoration: none !important;
+        font-weight: 600 !important;
+    }
+    section[data-testid="stSidebar"] .stCaption {
+        color: #94A3B8 !important;
     }
 
     /* === 4. PILL TABS NAVIGATION === */
@@ -431,8 +465,8 @@ def render_problem_latex(raw_text):
 with st.sidebar:
     st.markdown("""
     <div style="margin-bottom: 1.2rem;">
-        <h2 style="color: #FFFFFF; margin: 0; font-size: 1.55rem; font-weight: 800; letter-spacing: -0.02em;">Deja Code</h2>
-        <p style="color: #94A3B8; margin-top: 3px; font-size: 0.82rem; font-weight: 500;">Competitive Programming Search & Recs</p>
+        <h2 class="sidebar-title" style="color: #FFFFFF !important; margin: 0; font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em;">Deja Code</h2>
+        <p class="sidebar-subtitle" style="color: #CBD5E1 !important; margin-top: 4px; font-size: 0.82rem; font-weight: 500;">Competitive Programming Search & Recs</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -445,9 +479,9 @@ with st.sidebar:
         st.metric("Total Submissions Indexed", f"{df['total_submissions'].sum():,}")
     
     st.markdown("""
-    <div style="margin-top: 2.2rem; padding-top: 1.2rem; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.74rem; color: #94A3B8; line-height: 1.5;">
+    <div class="sidebar-footer" style="margin-top: 2.2rem; padding-top: 1.2rem; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.74rem; color: #94A3B8 !important; line-height: 1.5;">
         Engineered with Sentence-Transformers, scikit-learn, UMAP, and Streamlit.<br>
-        <a href="https://github.com/visshalb2007/dejacode" target="_blank" style="color: #818CF8; text-decoration: none; font-weight: 600;">GitHub Repository</a>
+        <a href="https://github.com/visshalb2007/dejacode" target="_blank" style="color: #818CF8 !important; text-decoration: none; font-weight: 600;">GitHub Repository</a>
     </div>
     """, unsafe_allow_html=True)
 
