@@ -463,6 +463,22 @@ def categorize_failures(fails_df, df):
     fails_df["failure_cause"] = cats
     return fails_df
 
+def export_failure_summary(fails_df, out_path="out/failure_summary.json"):
+    """Export aggregated failure statistics and taxonomy distribution."""
+    import json
+    counts = fails_df["failure_cause"].value_counts().to_dict()
+    total = len(fails_df)
+    percentages = {k: round((v / total) * 100, 1) for k, v in counts.items()} if total > 0 else {}
+    summary = {
+        "total_failures": total,
+        "counts": counts,
+        "percentages": percentages,
+        "top_examples": fails_df.groupby("failure_cause").head(2)[["query", "wrong_match", "score", "failure_cause"]].to_dict(orient="records")
+    }
+    with open(out_path, "w") as f:
+        json.dump(summary, f, indent=2)
+    return summary
+
 # ---------- CLI: build everything ----------
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
@@ -507,10 +523,14 @@ if __name__ == "__main__":
     searcher = Searcher(df, emb, a.model)
     metrics, fails = evaluate(searcher)
     if metrics is not None:
-        print("\n=== Tag-Overlap Evaluation (Noisy Proxy) ===")
+        print(metrics.round(3)); metrics.to_csv(f"{a.out}/metrics.csv")
         fails_df = pd.DataFrame(fails, columns=["query", "wrong_match", "score", "q_tags", "m_tags"])
         fails_df = categorize_failures(fails_df, df)
         fails_df.to_csv(f"{a.out}/failures.csv", index=False)
+        fail_stats = export_failure_summary(fails_df, f"{a.out}/failure_summary.json")
+        print("\nFailure Categories Breakdown:")
+        for k, v in fail_stats.get("percentages", {}).items():
+            print(f"  - {k}: {v}% ({fail_stats['counts'][k]})")
     curated_metrics = evaluate_curated(searcher, "data/eval_set.csv", k=10)
     if curated_metrics is not None:
         print("\n=== Curated Benchmark Evaluation (Hand-crafted Ground Truth) ===")
