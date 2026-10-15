@@ -465,6 +465,36 @@ def tune_hybrid_alpha(s, eval_path="data/eval_set.csv", alphas=None):
         })
     return pd.DataFrame(records)
 
+def compare_models(df, models=None, eval_path="data/eval_set.csv", out_dir="out"):
+    """Evaluate and compare dense embedding models side-by-side on the curated benchmark."""
+    if models is None:
+        models = ["all-MiniLM-L6-v2", "BAAI/bge-small-en-v1.5"]
+    results = []
+    for model_name in models:
+        slug = model_name.split("/")[-1]
+        emb_file = os.path.join(out_dir, f"emb_{slug}.npy")
+        if os.path.exists(emb_file):
+            emb_m = np.load(emb_file)
+        elif model_name == "all-MiniLM-L6-v2" and os.path.exists(os.path.join(out_dir, "emb.npy")):
+            emb_m = np.load(os.path.join(out_dir, "emb.npy"))
+        else:
+            emb_m = embed(df["doc"], model=model_name)
+            np.save(emb_file, emb_m)
+        s_m = Searcher(df, emb_m, model=model_name)
+        cur_m = evaluate_curated(s_m, eval_path, k=10)
+        if cur_m is not None:
+            for mode, row in cur_m.iterrows():
+                results.append({
+                    "model": slug,
+                    "mode": mode,
+                    "P@5": row["P@5"],
+                    "MRR": row["MRR"],
+                    "nDCG@10": row["nDCG@10"]
+                })
+    res_df = pd.DataFrame(results)
+    res_df.to_csv(os.path.join(out_dir, "model_tuning_results.csv"), index=False)
+    return res_df
+
 def categorize_failures(fails_df, df):
     """Categorize false match failures into 4 distinct failure causes."""
     title_to_text = dict(zip(df["title"], df["text"]))
