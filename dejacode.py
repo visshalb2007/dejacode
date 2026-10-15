@@ -70,6 +70,34 @@ def preprocess(df):
     out["doc"] = out["title"] + ". " + out["text"]
     return out
 
+# ---------- Solution & Code helpers ----------
+def get_solution_stats(solutions_path="data/solutions.csv"):
+    """Return DataFrame indexed by QCode with total_submissions, accepted_count, acceptance_rate."""
+    if not os.path.exists(solutions_path):
+        return pd.DataFrame(columns=["total_submissions", "accepted_count", "acceptance_rate"])
+    df = pd.read_csv(solutions_path, usecols=["QCode", "Status"])
+    total = df.groupby("QCode").size().rename("total_submissions")
+    acc = df[df["Status"] == "accepted"].groupby("QCode").size().rename("accepted_count")
+    stats = pd.concat([total, acc], axis=1).fillna(0).astype({"total_submissions": int, "accepted_count": int})
+    stats["acceptance_rate"] = (stats["accepted_count"] / stats["total_submissions"].clip(lower=1)).round(3)
+    return stats
+
+def get_code_snippet(solution_id, codes_dir="data/program_codes", max_chars=1200):
+    """Retrieve solution code snippet by SolutionID without loading all code into memory."""
+    if not os.path.exists(codes_dir): return None
+    for fn in ["first.csv", "second.csv", "third.csv"]:
+        path = os.path.join(codes_dir, fn)
+        if not os.path.exists(path): continue
+        try:
+            for chunk in pd.read_csv(path, chunksize=15000):
+                m = chunk[chunk["SolutionID"] == solution_id]
+                if not m.empty:
+                    code = str(m.iloc[0]["Solutions"]).strip()
+                    return code[:max_chars]
+        except Exception:
+            continue
+    return None
+
 # ---------- 2. embeddings ----------
 def embed(texts, model="all-MiniLM-L6-v2"):
     from sentence_transformers import SentenceTransformer
