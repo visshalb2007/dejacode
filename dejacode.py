@@ -641,6 +641,8 @@ if __name__ == "__main__":
     ap.add_argument("--alpha", type=float, default=0.65, help="Hybrid search alpha blend weight")
     ap.add_argument("--tune", action="store_true", help="Run alpha sweep and model comparison")
     ap.add_argument("--force-embed", action="store_true", help="Force recomputation of embeddings")
+    ap.add_argument("--recommend-solved", default="FLOW017,CFRTEST", help="Comma-separated QCodes of solved problems to generate recommendations")
+    ap.add_argument("--recommend-step", type=int, default=1, help="Difficulty escalation step (+1 moves up a tier, 0 keeps same tier)")
     a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
     df = preprocess(load(a.data)); print("problems after cleaning:", len(df))
     model_slug = a.model.split("/")[-1]
@@ -701,3 +703,11 @@ if __name__ == "__main__":
         model_comp_df = compare_models(df, [a.model, "BAAI/bge-small-en-v1.5"], "data/eval_set.csv", a.out)
         print("\nModel Comparison Table:")
         print(model_comp_df.to_string(index=False))
+
+    if a.recommend_solved:
+        recs = recommend_next(a.recommend_solved, df, emb, k=5, step=a.recommend_step)
+        if not recs.empty:
+            recs.to_csv(f"{a.out}/recommendations.csv", index=False)
+            print(f"\n=== Recommendations for Solved [{a.recommend_solved}] (Step: +{a.recommend_step}) ===")
+            print(recs[["qcode", "title", "difficulty", "similarity", "acceptance_rate"]].to_string(index=False))
+
