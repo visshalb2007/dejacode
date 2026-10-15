@@ -560,6 +560,75 @@ def export_failure_summary(fails_df, out_path="out/failure_summary.json"):
         json.dump(summary, f, indent=2)
     return summary
 
+def recommend_next(solved_qcodes, df, emb, k=5, step=1, solutions_path="data/solutions.csv"):
+    """
+    Recommend next problems based on a user's solved question codes:
+    1. Determines current demonstrated difficulty from solved history.
+    2. Steps difficulty to target level (e.g. +1 tier: beginner -> easy -> medium -> hard -> challenge).
+    3. Computes the semantic concept centroid of solved problems.
+    4. Finds semantically closest candidate problems matching the target difficulty.
+    5. Enriches candidates with acceptance statistics from solutions.csv.
+    """
+    if isinstance(solved_qcodes, str):
+        solved_qcodes = [x.strip() for x in solved_qcodes.split(",") if x.strip()]
+    solved_set = {str(q).strip().upper() for q in solved_qcodes if str(q).strip()}
+    
+    qcode_col = "qcode" if "qcode" in df.columns else None
+    if qcode_col:
+        qcode_upper = df[qcode_col].astype(str).str.upper()
+        solved_mask = qcode_upper.isin(solved_set)
+        solved_indices = df.index[solved_mask].tolist()
+    else:
+        solved_mask = pd.Series(False, index=df.index)
+        solved_indices = []
+
+    if solved_indices:
+        solved_levels = [
+            DIFF_MAP.get(str(d).lower().strip(), 1)
+            for d in df.loc[solved_indices, "difficulty"]
+            if pd.notna(d)
+        ]
+        curr_level = int(round(np.mean(solved_levels))) if solved_levels else 1
+        centroid = emb[solved_indices].mean(axis=0)
+        norm = np.linalg.norm(centroid)
+        if norm > 0: centroid = centroid / norm
+    else:
+        curr_level = 0
+        centroid = emb.mean(axis=0)
+        norm = np.linalg.norm(centroid)
+        if norm > 0: centroid = centroid / norm
+
+    target_level_idx = int(np.clip(curr_level + step, 0, len(DIFF_ORDER) - 1))
+    target_difficulty = DIFF_ORDER[target_level_idx]
+
+    candidates = df[~solved_mask].copy()
+    if candidates.empty:
+        return pd.DataFrame()
+
+    candidate_idx = candidates.index.to_numpy()
+    candidates["similarity"] = (emb[candidate_idx] @ centroid).round(3)
+
+    diff_candidates = candidates[candidates["difficulty"].astype(str).str.lower().str.strip() == target_difficulty]
+    if len(diff_candidates) < k:
+        allowed = {
+            DIFF_ORDER[idx]
+            for idx in [target_level_idx, max(0, target_level_idx - 1), min(len(DIFF_ORDER) - 1, target_level_idx + 1)]
+        }
+        diff_candidates = candidates[candidates["difficulty"].astype(str).str.lower().str.strip().isin(allowed)]
+    if len(diff_candidates) < k:
+        diff_candidates = candidates
+
+    if "acceptance_rate" not in diff_candidates.columns:
+        diff_candidates = attach_solution_stats(diff_candidates, solutions_path)
+
+    sort_cols = ["similarity"]
+    if "acceptance_rate" in diff_candidates.columns:
+        sort_cols.append("acceptance_rate")
+    recs = diff_candidates.sort_values(by=sort_cols, ascending=[False] * len(sort_cols)).head(k)
+
+    display_cols = [c for c in ["qcode", "title", "difficulty", "similarity", "total_submissions", "accepted_count", "acceptance_rate", "tags", "link"] if c in recs.columns]
+    return recs[display_cols]
+
 # ---------- CLI: build everything ----------
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
