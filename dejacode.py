@@ -117,7 +117,7 @@ class Searcher:
             self._m = SentenceTransformer(self.model_name)
         return self._m.encode([q], normalize_embeddings=True)[0]
 
-    def scores(self, q, mode="semantic", alpha=0.7, qi=None):
+    def scores(self, q, mode="semantic", alpha=0.65, qi=None):
         if qi is not None:
             sem = self.emb @ self.emb[qi]
             kw = (self.tf @ self.tf[qi].T).toarray().ravel()
@@ -129,7 +129,7 @@ class Searcher:
         z = lambda x: (x - x.mean()) / (x.std() + 1e-9)
         return alpha * z(sem) + (1 - alpha) * z(kw)
 
-    def search(self, q, k=5, mode="semantic", alpha=0.7, exclude=None, qi=None):
+    def search(self, q, k=5, mode="semantic", alpha=0.65, exclude=None, qi=None):
         s = self.scores(q, mode, alpha, qi=qi)
         if exclude is not None: s[exclude] = -1e9
         idx = np.argsort(-s)[:k]
@@ -555,6 +555,8 @@ if __name__ == "__main__":
     ap.add_argument("--min-cluster-size", type=int, default=10)
     ap.add_argument("--min-samples", type=int, default=3)
     ap.add_argument("--dim-red", default="umap", choices=["umap", "pca"])
+    ap.add_argument("--alpha", type=float, default=0.65, help="Hybrid search alpha blend weight")
+    ap.add_argument("--tune", action="store_true", help="Run alpha sweep and model comparison")
     ap.add_argument("--force-embed", action="store_true", help="Force recomputation of embeddings")
     a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
     df = preprocess(load(a.data)); print("problems after cleaning:", len(df))
@@ -602,3 +604,12 @@ if __name__ == "__main__":
     if curated_metrics is not None:
         print("\n=== Curated Benchmark Evaluation (Hand-crafted Ground Truth) ===")
         print(curated_metrics.round(3)); curated_metrics.to_csv(f"{a.out}/eval_benchmark_metrics.csv")
+    if a.tune or not os.path.exists(f"{a.out}/model_tuning_results.csv"):
+        alpha_df = tune_hybrid_alpha(searcher, "data/eval_set.csv")
+        if alpha_df is not None:
+            alpha_df.to_csv(f"{a.out}/alpha_tuning.csv", index=False)
+            best_alpha = alpha_df.sort_values(by="nDCG@10", ascending=False).iloc[0]["alpha"]
+            print(f"\nOptimal hybrid alpha on benchmark: {best_alpha}")
+        model_comp_df = compare_models(df, [a.model, "BAAI/bge-small-en-v1.5"], "data/eval_set.csv", a.out)
+        print("\nModel Comparison Table:")
+        print(model_comp_df.to_string(index=False))
