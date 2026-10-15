@@ -171,13 +171,55 @@ def extract_cluster_topic_tags(df, labels, topn=3):
         out[c] = [tag for tag, _ in counts]
     return out
 
-def label_clusters(df, labels, topn=5):
-    tv = TfidfVectorizer(stop_words="english", max_features=20000)
-    X = tv.fit_transform(df["doc"]); terms = np.array(tv.get_feature_names_out())
+CONTEST_STOP_WORDS = {
+    'test', 'case', 'cases', 'line', 'chef', 'number', 'numbers', 'integers', 'integer',
+    'input', 'output', 'given', 'print', 'find', 'problem', 'task', 'following', 'example',
+    'sample', 'time', 'constraints', 'subtask', 'contains'
+}
+
+def find_cluster_exemplars(df, emb, labels, topn=3):
+    """Find the topn problems closest to the centroid of each cluster."""
     out = {}
     for c in sorted(set(labels)):
-        m = np.asarray(X[labels == c].mean(axis=0)).ravel()
-        out[c] = ", ".join(terms[np.argsort(-m)[:topn]])
+        if c == -1:
+            out[c] = []
+            continue
+        mask = np.array(labels) == c
+        sub_indices = np.where(mask)[0]
+        if len(sub_indices) == 0:
+            out[c] = []
+            continue
+        sub_emb = emb[sub_indices]
+        centroid = sub_emb.mean(axis=0, keepdims=True)
+        centroid = centroid / (np.linalg.norm(centroid) + 1e-9)
+        sims = (sub_emb @ centroid.T).ravel()
+        top_ranks = np.argsort(-sims)[:min(topn, len(sub_indices))]
+        exemplars = []
+        for r in top_ranks:
+            orig_idx = sub_indices[r]
+            row = df.iloc[orig_idx]
+            qcode = row.get("qcode", f"P{orig_idx}")
+            title = row.get("title", "Untitled")
+            exemplars.append(f"{qcode} ({title})")
+        out[c] = exemplars
+    return out
+
+def label_clusters(df, labels, topn=5):
+    """Generate clean readable cluster labels combining top topic tags and distinctive TF-IDF terms."""
+    tv = TfidfVectorizer(stop_words="english", max_features=20000)
+    X = tv.fit_transform(df["doc"]); terms = np.array(tv.get_feature_names_out())
+    topic_tags_map = extract_cluster_topic_tags(df, labels, topn=3)
+    out = {}
+    for c in sorted(set(labels)):
+        if c == -1:
+            out[c] = "Noise / Outliers"
+            continue
+        mask = np.array(labels) == c
+        m = np.asarray(X[mask].mean(axis=0)).ravel()
+        top_terms = [t for t in terms[np.argsort(-m)] if t not in CONTEST_STOP_WORDS][:topn]
+        tags = topic_tags_map.get(c, [])
+        tag_prefix = f"[{', '.join(tags)}] " if tags else ""
+        out[c] = f"{tag_prefix}{', '.join(top_terms)}"
     return out
 
 # ---------- 5. visualization ----------
