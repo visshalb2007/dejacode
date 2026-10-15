@@ -7,10 +7,12 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
 
 COLS = {  # candidate column names (lowercase) -> standard name
+    "qcode": ["qcode", "code", "problem_code", "id"],
     "text": ["problem_statement", "statement", "description", "problem", "body", "text", "question"],
     "title": ["title", "name", "problem_name", "problem_title"],
     "tags": ["tags", "topics", "category", "categories", "algorithm_tags"],
-    "difficulty": ["level", "difficulty", "rating", "level", "difficulty_rating"],
+    "difficulty": ["level", "difficulty", "rating", "difficulty_rating"],
+    "link": ["link", "url", "problem_url"],
 }
 
 # ---------- 1. load + preprocess ----------
@@ -99,7 +101,8 @@ class Searcher:
         s = self.scores(q, mode, alpha)
         if exclude is not None: s[exclude] = -1e9
         idx = np.argsort(-s)[:k]
-        r = self.df.iloc[idx][["title", "difficulty", "tags"]].copy()
+        cols = [c for c in ["qcode", "title", "difficulty", "tags", "link"] if c in self.df.columns]
+        r = self.df.iloc[idx][cols].copy()
         r["score"] = s[idx]
         return r
 
