@@ -335,4 +335,107 @@ with tabs[2]:
 # ----------------- TAB 4: Problem Recommendations -----------------
 with tabs[3]:
     st.subheader("Adaptive Concept & Difficulty Progression")
-    st.caption("Input solved problems to receive personalized concept-aligned practice recommendations.")
+    st.caption("Select problems you've solved to get concept-aligned recommendations calibrated to your target difficulty level.")
+
+    @st.cache_data(show_spinner=False)
+    def get_accepted_solution_map(solutions_path="data/solutions.csv"):
+        if not os.path.exists(solutions_path): return {}
+        try:
+            sol = pd.read_csv(solutions_path, usecols=["QCode", "SolutionID", "Status", "Language"])
+            acc = sol[sol["Status"].astype(str).str.lower() == "accepted"].drop_duplicates(subset=["QCode"])
+            return dict(zip(acc["QCode"], zip(acc["SolutionID"], acc["Language"])))
+        except Exception:
+            return {}
+
+    sol_map = get_accepted_solution_map()
+
+    col_rec_in, col_rec_opt = st.columns([3, 1])
+
+    with col_rec_in:
+        problem_options = [f"{row['qcode']} | {row['title']} ({str(row.get('difficulty', 'medium')).capitalize()})" for _, row in df.iterrows()]
+        default_selected = [problem_options[0], problem_options[1]] if len(problem_options) >= 2 else []
+        
+        # Presets
+        preset = st.radio("Quick History Presets", ["None", "Beginner: FLOW017, CFRTEST", "Easy: SUMPAIR, CHEFLCM", "Medium: ANDTUPLE, DIVSUBS"], horizontal=True)
+        if "FLOW017" in preset:
+            pre_selected = [opt for opt in problem_options if "FLOW017" in opt or "CFRTEST" in opt]
+        elif "SUMPAIR" in preset:
+            pre_selected = [opt for opt in problem_options if "SUMPAIR" in opt or "CHEFLCM" in opt]
+        elif "ANDTUPLE" in preset:
+            pre_selected = [opt for opt in problem_options if "ANDTUPLE" in opt or "DIVSUBS" in opt]
+        else:
+            pre_selected = default_selected
+
+        selected_problems = st.multiselect(
+            "Select problems you have solved:",
+            options=problem_options,
+            default=pre_selected
+        )
+
+    with col_rec_opt:
+        step_choice = st.radio(
+            "Progression Step",
+            [
+                "+1 Tier (Level Up - Recommended)",
+                "0 (Reinforce Same Tier)",
+                "-1 Tier (Review Foundations)"
+            ],
+            index=0
+        )
+        step_val = 1 if "+1" in step_choice else (0 if "0" in step_choice else -1)
+        k_recs = st.slider("Recommendations Count", 3, 10, 5)
+
+    if selected_problems:
+        solved_codes = [p.split(" | ")[0].strip() for p in selected_problems]
+        recs_df = recommend_next(solved_codes, df, emb, k=k_recs, step=step_val)
+
+        if not recs_df.empty:
+            st.markdown(f"#### 🎯 Recommended Next Problems ({recs_df.iloc[0]['difficulty'].upper()} tier)")
+
+            for idx, (_, rec) in enumerate(recs_df.iterrows(), 1):
+                diff = str(rec.get("difficulty", "medium")).lower()
+                badge_class = f"badge-{diff}" if diff in DIFF_ORDER else "badge-medium"
+                link = f"https://www.codechef.com{rec['link']}" if str(rec.get("link", "")).startswith("/") else f"https://www.codechef.com/problems/{rec.get('qcode', '')}"
+                tags_str = ", ".join(rec["tags"]) if isinstance(rec["tags"], list) and rec["tags"] else "None"
+                acc_rate = f"{rec.get('acceptance_rate', 0.0) * 100:.1f}%" if "acceptance_rate" in rec else "N/A"
+                accepted_n = f"{int(rec.get('accepted_count', 0)):,}" if "accepted_count" in rec else "N/A"
+                subs_n = f"{int(rec.get('total_submissions', 0)):,}" if "total_submissions" in rec else "N/A"
+
+                with st.container():
+                    st.markdown(f"""
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h4 style="margin: 0;">
+                                #{idx}. <a href="{link}" target="_blank" style="text-decoration: none; color: #2563EB;">{rec.get('title', 'Unknown')}</a>
+                                <span style="font-size: 0.85rem; color: #64748B; font-weight: normal;">({rec.get('qcode', 'N/A')})</span>
+                            </h4>
+                            <div>
+                                <span class="{badge_class}">{diff.upper()}</span>
+                                <span style="margin-left: 8px; font-weight: 600; font-size: 0.85rem; color: #059669;">Concept Sim: {rec.get('similarity', 0.0):.3f}</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 8px; font-size: 0.88rem; color: #334155;">
+                            <strong>Tags:</strong> {tags_str} |
+                            <strong>Acceptance Rate:</strong> {acc_rate} ({accepted_n} / {subs_n} accepted)
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    with st.expander(f"💻 Peek Accepted Solution Code for {rec['qcode']}"):
+                        sol_info = sol_map.get(rec["qcode"])
+                        sol_id, lang = sol_info if sol_info else (None, None)
+                        if sol_id:
+                            code_snippet = get_code_snippet(sol_id)
+                            if code_snippet:
+                                st.caption(f"Accepted Submission: `{sol_id}` | Language: `{lang}`")
+                                code_lang = "python" if "py" in str(lang).lower() else ("java" if "java" in str(lang).lower() else "cpp")
+                                st.code(code_snippet, language=code_lang)
+                            else:
+                                st.info(f"Solution ID {sol_id} found in solutions.csv, but raw code file is not in program_codes/.")
+                        else:
+                            st.info(f"No accepted submission records found in solutions.csv for {rec['qcode']}.")
+        else:
+            st.warning("No candidate problems found matching the selected criteria.")
+    else:
+        st.info("Please select at least one solved problem above to generate recommendations.")
+
