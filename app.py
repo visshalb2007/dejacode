@@ -7,23 +7,174 @@ import plotly.graph_objects as go
 from dejacode import Searcher, recommend_next, attach_solution_stats, get_code_snippet, DIFF_ORDER
 
 st.set_page_config(
-    page_title="Déjà Code | Competitive Programming Search & Recommendations",
-    page_icon="⚡",
+    page_title="Deja Code | Competitive Programming Search & Recommendations",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom Styling
+# Neomorphism (Soft UI) Design System
 st.markdown("""
 <style>
-    .main-header { font-size: 2.2rem; font-weight: 700; color: #1E293B; margin-bottom: 0.2rem; }
-    .sub-header { font-size: 1.05rem; color: #64748B; margin-bottom: 1.5rem; }
-    .badge-beginner { background-color: #DEF7EC; color: #03543F; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
-    .badge-easy { background-color: #E1EFFE; color: #1E429F; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
-    .badge-medium { background-color: #FEF08A; color: #713F12; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
-    .badge-hard { background-color: #FEE2E2; color: #991B1B; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
-    .badge-challenge { background-color: #F3E8FF; color: #6B21A8; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
-    .card { background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    /* Global Soft UI Background & Typography */
+    .stApp {
+        background-color: #EEF2F6;
+        color: #2D3748;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    /* Sidebar Soft UI */
+    section[data-testid="stSidebar"] {
+        background-color: #EEF2F6;
+        border-right: 1px solid rgba(255, 255, 255, 0.7);
+    }
+    section[data-testid="stSidebar"] > div {
+        background-color: #EEF2F6;
+    }
+
+    /* Neomorphic Headers */
+    .main-header {
+        font-size: 2.3rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        color: #1E293B;
+        margin-bottom: 0.2rem;
+    }
+    .sub-header {
+        font-size: 0.98rem;
+        color: #64748B;
+        margin-bottom: 1.6rem;
+        font-weight: 500;
+    }
+
+    /* Neomorphic Extruded Container Card */
+    .neo-card {
+        background: #EEF2F6;
+        border-radius: 16px;
+        box-shadow: 7px 7px 14px #d1d9e6, -7px -7px 14px #ffffff;
+        padding: 20px 24px;
+        margin-bottom: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.65);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .neo-card:hover {
+        box-shadow: 9px 9px 18px #c8d2e0, -9px -9px 18px #ffffff;
+    }
+
+    /* Neomorphic Inset Metric Card */
+    div[data-testid="stMetric"] {
+        background: #EEF2F6;
+        border-radius: 14px;
+        box-shadow: 5px 5px 10px #d1d9e6, -5px -5px 10px #ffffff;
+        padding: 12px 18px;
+        border: 1px solid rgba(255, 255, 255, 0.7);
+    }
+
+    /* Neomorphic Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 14px;
+        background-color: transparent;
+        padding: 6px 0;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background-color: #EEF2F6;
+        border-radius: 12px;
+        padding: 9px 22px;
+        font-weight: 600;
+        color: #64748B;
+        box-shadow: 4px 4px 8px #d1d9e6, -4px -4px 8px #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.6) !important;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #EEF2F6 !important;
+        color: #2563EB !important;
+        box-shadow: inset 3px 3px 6px #d1d9e6, inset -3px -3px 6px #ffffff !important;
+        border: 1px solid rgba(209, 217, 230, 0.5) !important;
+    }
+
+    /* Soft UI Inset Inputs */
+    .stTextInput > div > div > input,
+    .stTextArea > div > div > textarea,
+    .stSelectbox > div > div {
+        background-color: #EEF2F6 !important;
+        border-radius: 12px !important;
+        border: 1px solid rgba(255, 255, 255, 0.7) !important;
+        box-shadow: inset 3px 3px 6px #d1d9e6, inset -3px -3px 6px #ffffff !important;
+        color: #1E293B !important;
+    }
+
+    /* Difficulty Badges - Soft UI Extruded Pills */
+    .badge-neo {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        box-shadow: 2px 2px 5px #d1d9e6, -2px -2px 5px #ffffff;
+    }
+    .badge-beginner {
+        background: #EEF2F6;
+        color: #0D9488;
+        border: 1px solid rgba(13, 148, 136, 0.3);
+    }
+    .badge-easy {
+        background: #EEF2F6;
+        color: #2563EB;
+        border: 1px solid rgba(37, 99, 235, 0.3);
+    }
+    .badge-medium {
+        background: #EEF2F6;
+        color: #D97706;
+        border: 1px solid rgba(217, 119, 6, 0.3);
+    }
+    .badge-hard {
+        background: #EEF2F6;
+        color: #DC2626;
+        border: 1px solid rgba(220, 38, 38, 0.3);
+    }
+    .badge-challenge {
+        background: #EEF2F6;
+        color: #7C3AED;
+        border: 1px solid rgba(124, 58, 237, 0.3);
+    }
+
+    /* Inset Score & Tag Indicators */
+    .pill-inset {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        background: #EEF2F6;
+        color: #475569;
+        box-shadow: inset 2px 2px 4px #d1d9e6, inset -2px -2px 4px #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+
+    /* Soft UI Comparison Cards */
+    .comp-box {
+        background: #EEF2F6;
+        border-radius: 14px;
+        padding: 14px 18px;
+        margin-bottom: 12px;
+        box-shadow: 4px 4px 9px #d1d9e6, -4px -4px 9px #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.65);
+    }
+    .comp-box-kw { border-left: 4px solid #64748B; }
+    .comp-box-sem { border-left: 4px solid #059669; }
+    .comp-box-both { border-left: 4px solid #2563EB; }
+
+    /* Expanders styling */
+    div[data-testid="stExpander"] {
+        background: #EEF2F6;
+        border-radius: 12px;
+        box-shadow: 3px 3px 6px #d1d9e6, -3px -3px 6px #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        margin-top: 6px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -46,9 +197,7 @@ def load_app_data():
     df["tags"] = df["tags"].map(safe_parse)
     df["doc"] = df["title"].astype(str) + ". " + df["text"].astype(str)
     
-    # Attach acceptance stats if available
     df = attach_solution_stats(df, "data/solutions.csv")
-    
     emb = np.load(emb_path)
     coords = np.load(coords_path) if os.path.exists(coords_path) else None
     searcher = Searcher(df, emb)
@@ -58,7 +207,7 @@ df, emb, coords, searcher = load_app_data()
 
 # Sidebar
 with st.sidebar:
-    st.markdown("### ⚡ **Déjà Code**")
+    st.markdown("### **Deja Code**")
     st.caption("Competitive Programming Semantic Search & Recommendations")
     st.divider()
     if df is not None:
@@ -67,24 +216,24 @@ with st.sidebar:
         st.metric("Concept Clusters", f"{clusters_count}")
         st.metric("Total Submissions Indexed", f"{df['total_submissions'].sum():,}")
     st.divider()
-    st.markdown("Built with **Sentence-Transformers**, **scikit-learn**, **UMAP**, and **Streamlit**.")
+    st.markdown("Engineered with **Sentence-Transformers**, **scikit-learn**, **UMAP**, and **Streamlit**.")
     st.markdown("[GitHub Repository](https://github.com/visshalb2007/dejacode)")
 
-st.markdown('<div class="main-header">⚡ Déjà Code</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header">Deja Code</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-header">Algorithmic semantic search, topic clustering, and difficulty progression for CodeChef problems</div>', unsafe_allow_html=True)
 
 if searcher is None:
-    st.error("Index artifacts not found in `out/`. Please run `python dejacode.py --data data/questions.csv --k 12` first.")
+    st.error("Index artifacts not found in out/. Please run python dejacode.py --data data/questions.csv --k 12 first.")
     st.stop()
 
 tabs = st.tabs([
-    "🔍 Search & Lookup",
-    "⚖️ Compare Search Modes",
-    "🌌 Interactive Clusters",
-    "🎯 Problem Recommendations"
+    "Search & Discovery",
+    "Mode Comparison",
+    "Cluster Manifold",
+    "Recommendations"
 ])
 
-# ----------------- TAB 1: Search & Lookup -----------------
+# ----------------- TAB 1: Search & Discovery -----------------
 with tabs[0]:
     st.subheader("Semantic & Hybrid Problem Search")
     
@@ -108,7 +257,7 @@ with tabs[0]:
         mode = st.radio("Search Mode", ["hybrid", "semantic", "keyword"], index=0)
         alpha = 0.65
         if mode == "hybrid":
-            alpha = st.slider("Dense / Sparse Weight (α)", 0.0, 1.0, 0.65, 0.05, help="1.0 = Pure Semantic Dense, 0.0 = Pure Sparse Keyword")
+            alpha = st.slider("Dense / Sparse Weight (alpha)", 0.0, 1.0, 0.65, 0.05, help="1.0 = Pure Semantic Dense, 0.0 = Pure Sparse Keyword")
         k_results = st.slider("Max Results", 3, 20, 5)
         diff_filter = st.selectbox("Difficulty Filter", ["All"] + DIFF_ORDER)
 
@@ -124,7 +273,7 @@ with tabs[0]:
         
         top_k = results_df.head(k_results)
         
-        st.markdown(f"#### Top {len(top_k)} Matching Problems (`{mode}` mode)")
+        st.markdown(f"#### Top {len(top_k)} Matching Problems ({mode} mode)")
         
         for _, row in top_k.iterrows():
             diff = str(row.get("difficulty", "medium")).lower()
@@ -134,18 +283,18 @@ with tabs[0]:
             
             with st.container():
                 st.markdown(f"""
-                <div class="card">
+                <div class="neo-card">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <h4 style="margin: 0; color: #0F172A;">
                             <a href="{codechef_link}" target="_blank" style="text-decoration: none; color: #2563EB;">{row.get('title', 'Unknown')}</a>
                             <span style="font-size: 0.85rem; color: #64748B; font-weight: normal;">({row.get('qcode', 'N/A')})</span>
                         </h4>
                         <div>
-                            <span class="{badge_class}">{diff.upper()}</span>
-                            <span style="margin-left: 8px; font-weight: 600; font-size: 0.85rem; color: #475569;">Score: {row['score']:.3f}</span>
+                            <span class="badge-neo {badge_class}">{diff.upper()}</span>
+                            <span class="pill-inset" style="margin-left: 8px;">Score: {row['score']:.3f}</span>
                         </div>
                     </div>
-                    <div style="margin-top: 8px; font-size: 0.88rem; color: #334155;">
+                    <div style="margin-top: 10px; font-size: 0.88rem; color: #475569;">
                         <strong>Tags:</strong> {tags_str} | 
                         <strong>Cluster:</strong> {row.get('cluster_label', 'N/A')}
                     </div>
@@ -154,7 +303,7 @@ with tabs[0]:
                 with st.expander("Preview Problem Statement"):
                     st.write(row.get("text", "No statement text available."))
 
-# ----------------- TAB 2: Compare Search Modes -----------------
+# ----------------- TAB 2: Mode Comparison -----------------
 with tabs[1]:
     st.subheader("Side-by-Side Mode Comparison: Sparse vs Dense")
     st.caption("Directly contrast Sparse Keyword (TF-IDF) against Dense Semantic (all-MiniLM-L6-v2) on the same input.")
@@ -192,46 +341,48 @@ with tabs[1]:
         c_left, c_right = st.columns(2)
 
         with c_left:
-            st.markdown("#### 🔤 Sparse Keyword (TF-IDF)")
-            st.caption("Matches exact word tokens (often distracted by story words like *Chef*, *city*, *game*).")
+            st.markdown("#### Sparse Keyword (TF-IDF)")
+            st.caption("Matches exact word tokens (often distracted by narrative words like Chef, city, game).")
             for rank, (_, row) in enumerate(kw_df.iterrows(), 1):
                 is_shared = row["qcode"] in common
-                border_color = "#3B82F6" if is_shared else "#CBD5E1"
-                shared_tag = " <span style='color: #2563EB; font-size: 0.8rem; font-weight: 600;'>[In Both]</span>" if is_shared else ""
+                box_class = "comp-box comp-box-both" if is_shared else "comp-box comp-box-kw"
+                shared_tag = " <span class='pill-inset' style='color: #2563EB;'>In Both</span>" if is_shared else ""
                 diff = str(row.get("difficulty", "medium")).lower()
                 badge_class = f"badge-{diff}" if diff in DIFF_ORDER else "badge-medium"
                 link = f"https://www.codechef.com{row['link']}" if str(row.get("link", "")).startswith("/") else f"https://www.codechef.com/problems/{row.get('qcode', '')}"
                 
                 st.markdown(f"""
-                <div style="border: 2px solid {border_color}; border-radius: 6px; padding: 10px; margin-bottom: 8px; background: #FAFAFA;">
-                    <div style="font-weight: 600;">#{rank}. <a href="{link}" target="_blank">{row['title']}</a> ({row['qcode']}){shared_tag}</div>
-                    <div style="font-size: 0.82rem; color: #64748B; margin-top: 4px;">
-                        <span class="{badge_class}">{diff.upper()}</span> | Score: {row['score']:.3f} | Tags: {', '.join(row['tags'][:3]) if isinstance(row['tags'], list) and row['tags'] else 'None'}
+                <div class="{box_class}">
+                    <div style="font-weight: 600;">#{rank}. <a href="{link}" target="_blank" style="text-decoration: none; color: #1E293B;">{row['title']}</a> <span style="font-size: 0.85rem; color: #64748B;">({row['qcode']})</span>{shared_tag}</div>
+                    <div style="font-size: 0.82rem; color: #64748B; margin-top: 6px;">
+                        <span class="badge-neo {badge_class}">{diff.upper()}</span>
+                        <span class="pill-inset" style="margin-left: 6px;">Score: {row['score']:.3f}</span>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
 
         with c_right:
-            st.markdown("#### 🧠 Dense Semantic (MiniLM-L6-v2)")
-            st.caption("Matches conceptual problem meaning and algorithm abstraction (even with different story words).")
+            st.markdown("#### Dense Semantic (MiniLM-L6-v2)")
+            st.caption("Matches conceptual problem meaning and algorithm abstraction across disparate stories.")
             for rank, (_, row) in enumerate(sem_df.iterrows(), 1):
                 is_shared = row["qcode"] in common
-                border_color = "#3B82F6" if is_shared else "#10B981"
-                shared_tag = " <span style='color: #2563EB; font-size: 0.8rem; font-weight: 600;'>[In Both]</span>" if is_shared else " <span style='color: #059669; font-size: 0.8rem; font-weight: 600;'>[Semantic Match]</span>"
+                box_class = "comp-box comp-box-both" if is_shared else "comp-box comp-box-sem"
+                shared_tag = " <span class='pill-inset' style='color: #2563EB;'>In Both</span>" if is_shared else " <span class='pill-inset' style='color: #059669;'>Semantic Match</span>"
                 diff = str(row.get("difficulty", "medium")).lower()
                 badge_class = f"badge-{diff}" if diff in DIFF_ORDER else "badge-medium"
                 link = f"https://www.codechef.com{row['link']}" if str(row.get("link", "")).startswith("/") else f"https://www.codechef.com/problems/{row.get('qcode', '')}"
 
                 st.markdown(f"""
-                <div style="border: 2px solid {border_color}; border-radius: 6px; padding: 10px; margin-bottom: 8px; background: #F0FDF4;">
-                    <div style="font-weight: 600;">#{rank}. <a href="{link}" target="_blank">{row['title']}</a> ({row['qcode']}){shared_tag}</div>
-                    <div style="font-size: 0.82rem; color: #64748B; margin-top: 4px;">
-                        <span class="{badge_class}">{diff.upper()}</span> | Score: {row['score']:.3f} | Tags: {', '.join(row['tags'][:3]) if isinstance(row['tags'], list) and row['tags'] else 'None'}
+                <div class="{box_class}">
+                    <div style="font-weight: 600;">#{rank}. <a href="{link}" target="_blank" style="text-decoration: none; color: #1E293B;">{row['title']}</a> <span style="font-size: 0.85rem; color: #64748B;">({row['qcode']})</span>{shared_tag}</div>
+                    <div style="font-size: 0.82rem; color: #64748B; margin-top: 6px;">
+                        <span class="badge-neo {badge_class}">{diff.upper()}</span>
+                        <span class="pill-inset" style="margin-left: 6px;">Score: {row['score']:.3f}</span>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
 
-# ----------------- TAB 3: Interactive Clusters -----------------
+# ----------------- TAB 3: Cluster Manifold -----------------
 with tabs[2]:
     st.subheader("2D Semantic Problem Map & Cluster Exploration")
     st.caption("Nonlinear 2D projection (UMAP) of dense problem embeddings with discovered thematic clusters.")
@@ -282,18 +433,18 @@ with tabs[2]:
         fig.update_layout(
             title=f"2D Problem Semantic Space ({len(filtered_plot):,} problems shown)",
             height=620,
-            template="plotly_white",
+            paper_bgcolor="#EEF2F6",
+            plot_bgcolor="#EEF2F6",
             legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="center", x=0.5),
             margin=dict(l=20, r=20, t=40, b=80),
-            xaxis=dict(title="UMAP Component 1", showgrid=True),
-            yaxis=dict(title="UMAP Component 2", showgrid=True)
+            xaxis=dict(title="UMAP Component 1", showgrid=True, gridcolor="#E2E8F0"),
+            yaxis=dict(title="UMAP Component 2", showgrid=True, gridcolor="#E2E8F0")
         )
         st.plotly_chart(fig, use_container_width=True)
         
-        # Cluster Summary Table
         summary_path = "out/cluster_summary.csv"
         if os.path.exists(summary_path):
-            st.markdown("#### 📊 Algorithmic Cluster Profiles & Exemplar Medoids")
+            st.markdown("#### Cluster Profiles & Exemplar Medoids")
             sum_df = pd.read_csv(summary_path)
             st.dataframe(
                 sum_df[["cluster_id", "top_topic_tags", "top_tfidf_terms", "size", "exemplar_1", "exemplar_2"]],
@@ -309,10 +460,9 @@ with tabs[2]:
                 hide_index=True
             )
             
-        # Hidden Matches Expander
         hidden_path = "out/hidden_matches.csv"
         if os.path.exists(hidden_path):
-            with st.expander("🔍 Discovered 'Hidden Matches' (High Semantic Similarity, Low Lexical Overlap)"):
+            with st.expander("Discovered Hidden Matches (High Semantic Similarity, Low Lexical Overlap)"):
                 st.caption("Pairs of problems with completely different story words that share the exact same underlying algorithm.")
                 h_df = pd.read_csv(hidden_path)
                 st.dataframe(
@@ -330,12 +480,12 @@ with tabs[2]:
                     hide_index=True
                 )
     else:
-        st.info("2D coordinates not available. Run `python dejacode.py --data data/questions.csv` to generate projection.")
+        st.info("2D coordinates not available. Run python dejacode.py --data data/questions.csv to generate projection.")
 
-# ----------------- TAB 4: Problem Recommendations -----------------
+# ----------------- TAB 4: Recommendations -----------------
 with tabs[3]:
     st.subheader("Adaptive Concept & Difficulty Progression")
-    st.caption("Select problems you've solved to get concept-aligned recommendations calibrated to your target difficulty level.")
+    st.caption("Select problems you have solved to get concept-aligned recommendations calibrated to your target difficulty level.")
 
     @st.cache_data(show_spinner=False)
     def get_accepted_solution_map(solutions_path="data/solutions.csv"):
@@ -355,7 +505,6 @@ with tabs[3]:
         problem_options = [f"{row['qcode']} | {row['title']} ({str(row.get('difficulty', 'medium')).capitalize()})" for _, row in df.iterrows()]
         default_selected = [problem_options[0], problem_options[1]] if len(problem_options) >= 2 else []
         
-        # Presets
         preset = st.radio("Quick History Presets", ["None", "Beginner: FLOW017, CFRTEST", "Easy: SUMPAIR, CHEFLCM", "Medium: ANDTUPLE, DIVSUBS"], horizontal=True)
         if "FLOW017" in preset:
             pre_selected = [opt for opt in problem_options if "FLOW017" in opt or "CFRTEST" in opt]
@@ -390,7 +539,7 @@ with tabs[3]:
         recs_df = recommend_next(solved_codes, df, emb, k=k_recs, step=step_val)
 
         if not recs_df.empty:
-            st.markdown(f"#### 🎯 Recommended Next Problems ({recs_df.iloc[0]['difficulty'].upper()} tier)")
+            st.markdown(f"#### Recommended Next Problems ({recs_df.iloc[0]['difficulty'].upper()} tier)")
 
             for idx, (_, rec) in enumerate(recs_df.iterrows(), 1):
                 diff = str(rec.get("difficulty", "medium")).lower()
@@ -403,25 +552,25 @@ with tabs[3]:
 
                 with st.container():
                     st.markdown(f"""
-                    <div class="card">
+                    <div class="neo-card">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <h4 style="margin: 0;">
                                 #{idx}. <a href="{link}" target="_blank" style="text-decoration: none; color: #2563EB;">{rec.get('title', 'Unknown')}</a>
                                 <span style="font-size: 0.85rem; color: #64748B; font-weight: normal;">({rec.get('qcode', 'N/A')})</span>
                             </h4>
                             <div>
-                                <span class="{badge_class}">{diff.upper()}</span>
-                                <span style="margin-left: 8px; font-weight: 600; font-size: 0.85rem; color: #059669;">Concept Sim: {rec.get('similarity', 0.0):.3f}</span>
+                                <span class="badge-neo {badge_class}">{diff.upper()}</span>
+                                <span class="pill-inset" style="margin-left: 8px;">Concept Sim: {rec.get('similarity', 0.0):.3f}</span>
                             </div>
                         </div>
-                        <div style="margin-top: 8px; font-size: 0.88rem; color: #334155;">
+                        <div style="margin-top: 10px; font-size: 0.88rem; color: #475569;">
                             <strong>Tags:</strong> {tags_str} |
                             <strong>Acceptance Rate:</strong> {acc_rate} ({accepted_n} / {subs_n} accepted)
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
 
-                    with st.expander(f"💻 Peek Accepted Solution Code for {rec['qcode']}"):
+                    with st.expander(f"Accepted Solution Code for {rec['qcode']}"):
                         sol_info = sol_map.get(rec["qcode"])
                         sol_id, lang = sol_info if sol_info else (None, None)
                         if sol_id:
@@ -438,4 +587,3 @@ with tabs[3]:
             st.warning("No candidate problems found matching the selected criteria.")
     else:
         st.info("Please select at least one solved problem above to generate recommendations.")
-
