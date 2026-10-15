@@ -320,6 +320,29 @@ def plot_interactive_clusters(df, xy, labels, names, path="out/clusters.html"):
     fig.write_html(path, include_plotlyjs="cdn")
     return fig
 
+def explain_hidden_match(r1, r2):
+    """Generate an explanation of why two problems match algorithmically despite different narratives."""
+    t1, t2 = str(r1["text"]).lower(), str(r2["text"]).lower()
+    t1_title, t2_title = r1.get("title", ""), r2.get("title", "")
+    concepts = [
+        ("shortest-path & graph traversal", ["shortest", "path", "dist", "graph", "vertices", "edges", "travel", "cities"]),
+        ("2D grid & matrix dynamic programming", ["grid", "cell", "cells", "matrix", "walk", "moves", "triangle"]),
+        ("substring & string matching", ["string", "strings", "substring", "characters", "prefix", "suffix", "palindrome"]),
+        ("combinatorics & modular arithmetic", ["permutation", "combinations", "modulo", "ways", "permutations", "digits"]),
+        ("turn-based game theory (Nim/Sprague-Grundy)", ["game", "player", "turn", "moves", "win", "optimal"]),
+        ("subarray optimization & dynamic programming", ["array", "subarray", "contiguous", "sum", "maximum", "minimum"]),
+        ("binary search & monotonic optimization", ["binary search", "sorted", "monotonic", "elements", "order", "search"]),
+        ("bipartite graph & pairs matching", ["pair", "pairs", "matching", "friends", "partition", "graph"])
+    ]
+    detected = []
+    for cname, words in concepts:
+        s1 = sum(1 for w in words if w in t1)
+        s2 = sum(1 for w in words if w in t2)
+        if s1 >= 2 and s2 >= 2:
+            detected.append(cname)
+    core = detected[0] if detected else "structural algorithmic pattern"
+    return f"Shared algorithmic core: {core}. Divergent narratives: '{t1_title}' vs '{t2_title}'."
+
 # ---------- 5b. hidden matches (same algorithm, different story) ----------
 def find_hidden_matches(df, emb, min_semantic=0.62, max_keyword=0.12, top_n=30):
     """Find problem pairs with high semantic embedding similarity but low TF-IDF keyword overlap."""
@@ -343,7 +366,6 @@ def find_hidden_matches(df, emb, min_semantic=0.62, max_keyword=0.12, top_n=30):
         i, j = cand_i[r], cand_j[r]
         row_i, row_j = df.iloc[i], df.iloc[j]
         pairs.append({
-            "idx1": i, "idx2": j,
             "prob1_code": row_i.get("qcode", f"P{i}"),
             "prob1_title": row_i.get("title", "Untitled"),
             "prob2_code": row_j.get("qcode", f"P{j}"),
@@ -351,10 +373,9 @@ def find_hidden_matches(df, emb, min_semantic=0.62, max_keyword=0.12, top_n=30):
             "semantic_sim": round(float(d_vals[mask][r]), 3),
             "keyword_sim": round(float(s_vals[mask][r]), 3),
             "divergence": round(float(div_vals[r]), 3),
-            "prob1_level": row_i.get("difficulty", "unknown"),
-            "prob2_level": row_j.get("difficulty", "unknown"),
             "cluster_1": row_i.get("cluster", -1),
             "cluster_2": row_j.get("cluster", -1),
+            "explanation": explain_hidden_match(row_i, row_j)
         })
     return pd.DataFrame(pairs)
 
