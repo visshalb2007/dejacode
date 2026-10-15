@@ -17,14 +17,40 @@ st.set_page_config(
 
 # ----------------- STYLING SYSTEM -----------------
 st.markdown("""
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+    /* =========================================================================
+       TYPOGRAPHY CONFIGURATION (3-Role Font System)
+       To switch font pairing easily, update the CSS variables in this :root block:
+       
+       Active Setup:
+       - Heading: Space Grotesk
+       - Body / UI: Inter
+       - Monospace: JetBrains Mono
+       
+       Alternative Pairings (switchable in one place):
+       - Option 1 (Friendly SaaS):   'Plus Jakarta Sans' / 'DM Sans' / 'Fira Code'
+       - Option 2 (Futuristic):      'Sora' / 'Manrope' / 'IBM Plex Mono'
+       - Option 3 (Soft / Beginner): 'Outfit' / 'Nunito Sans' / 'Source Code Pro'
+       ========================================================================= */
+    :root {
+        --font-heading: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
 
     /* === 1. GLOBAL LAYOUT & NEUTRAL CANVAS === */
     html, body, [data-testid="stAppViewContainer"] {
         background-color: #F5F6FA !important;
         color: #1E293B !important;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        font-family: var(--font-body) !important;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
     
     /* Cap max content width and trim excessive top margin */
@@ -62,27 +88,61 @@ st.markdown("""
     }
     section[data-testid="stSidebar"] div[data-testid="stMetricLabel"] * {
         color: #94A3B8 !important;
+        font-family: var(--font-body) !important;
         font-size: 0.72rem !important;
         font-weight: 600 !important;
         text-transform: uppercase !important;
-        letter-spacing: 0.05em !important;
+        letter-spacing: 0.06em !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stMetricValue"] * {
         color: #F8FAFC !important;
-        font-size: 1.35rem !important;
+        font-family: var(--font-heading) !important;
+        font-size: 1.45rem !important;
         font-weight: 700 !important;
+        letter-spacing: -0.02em !important;
+        font-variant-numeric: tabular-nums !important;
     }
 
-    /* === 3. TYPOGRAPHY & HEADINGS (SCOPED TO MAIN AREA) === */
+    /* === 3. TYPOGRAPHY & TYPE SCALE (SCOPED TO MAIN AREA) === */
+    /* Headings: Space Grotesk, bold with tight letter-spacing */
     .main h1, .main h2, .main h3, .main h4, .main h5, .main h6,
     .main .stMarkdown h1, .main .stMarkdown h2, .main .stMarkdown h3, .main .stMarkdown h4,
     [data-testid="stMain"] h1, [data-testid="stMain"] h2, [data-testid="stMain"] h3,
     [data-testid="stAppViewContainer"] > section:not([data-testid="stSidebar"]) h1,
     [data-testid="stAppViewContainer"] > section:not([data-testid="stSidebar"]) h2 {
         color: #0F172A !important;
+        font-family: var(--font-heading) !important;
         font-weight: 700 !important;
-        font-family: 'Inter', sans-serif !important;
+        letter-spacing: -0.02em !important;
     }
+    
+    .page-title {
+        font-family: var(--font-heading) !important;
+        font-size: 1.85rem !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.025em !important;
+        line-height: 1.2 !important;
+        color: #0F172A !important;
+        margin: 0 !important;
+    }
+    .page-subtitle {
+        font-family: var(--font-body) !important;
+        font-size: 0.93rem !important;
+        color: #64748B !important;
+        margin-top: 4px !important;
+        margin-bottom: 0 !important;
+        line-height: 1.55 !important;
+    }
+    .section-heading {
+        font-family: var(--font-heading) !important;
+        font-size: 1.12rem !important;
+        font-weight: 700 !important;
+        color: #0F172A !important;
+        letter-spacing: -0.015em !important;
+        line-height: 1.35 !important;
+    }
+
+    /* Body Text: Inter, comfortable line-height 1.55 */
     .main p, .main span, .main label,
     .main .stMarkdown p,
     [data-testid="stMain"] p, [data-testid="stMain"] span,
@@ -90,11 +150,14 @@ st.markdown("""
     [data-testid="stWidgetLabel"] label,
     [data-testid="stWidgetLabel"] p {
         color: #334155 !important;
-        font-family: 'Inter', sans-serif !important;
+        font-family: var(--font-body) !important;
+        line-height: 1.55 !important;
     }
     .main .stCaption, [data-testid="stMain"] .stCaption {
         color: #64748B !important;
-        font-size: 0.88rem !important;
+        font-family: var(--font-body) !important;
+        font-size: 0.85rem !important;
+        line-height: 1.5 !important;
     }
 
     /* === SIDEBAR TYPOGRAPHY SPECIFIC OVERRIDES === */
@@ -108,7 +171,8 @@ st.markdown("""
     section[data-testid="stSidebar"] .stMarkdown h4,
     section[data-testid="stSidebar"] .sidebar-title {
         color: #FFFFFF !important;
-        font-family: 'Inter', sans-serif !important;
+        font-family: var(--font-heading) !important;
+        letter-spacing: -0.025em !important;
     }
     section[data-testid="stSidebar"] p,
     section[data-testid="stSidebar"] span,
@@ -116,10 +180,12 @@ st.markdown("""
     section[data-testid="stSidebar"] .stMarkdown p,
     section[data-testid="stSidebar"] .sidebar-subtitle {
         color: #CBD5E1 !important;
-        font-family: 'Inter', sans-serif !important;
+        font-family: var(--font-body) !important;
+        line-height: 1.5 !important;
     }
     section[data-testid="stSidebar"] .sidebar-footer {
         color: #94A3B8 !important;
+        font-family: var(--font-body) !important;
         font-size: 0.74rem !important;
         line-height: 1.5 !important;
     }
@@ -127,9 +193,11 @@ st.markdown("""
         color: #818CF8 !important;
         text-decoration: none !important;
         font-weight: 600 !important;
+        font-family: var(--font-body) !important;
     }
     section[data-testid="stSidebar"] .stCaption {
         color: #94A3B8 !important;
+        font-family: var(--font-body) !important;
     }
 
     /* === 4. PILL TABS NAVIGATION === */
@@ -144,6 +212,7 @@ st.markdown("""
         border: 1px solid #E2E8F0 !important;
         border-radius: 22px !important;
         padding: 8px 22px !important;
+        font-family: var(--font-body) !important;
         font-weight: 500 !important;
         font-size: 0.90rem !important;
         color: #64748B !important;
@@ -157,7 +226,8 @@ st.markdown("""
     .stTabs [aria-selected="true"] {
         background-color: #6366F1 !important;
         color: #FFFFFF !important;
-        font-weight: 700 !important;
+        font-family: var(--font-body) !important;
+        font-weight: 600 !important;
         border-color: #6366F1 !important;
         box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3) !important;
     }
@@ -190,14 +260,31 @@ st.markdown("""
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
     }
     .control-card-header {
-        font-size: 0.8rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: #475569;
+        font-family: var(--font-body) !important;
+        font-size: 0.75rem !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.08em !important;
+        color: #475569 !important;
         margin-bottom: 12px;
         padding-bottom: 8px;
         border-bottom: 1px solid #F1F5F9;
+    }
+
+    /* Problem titles in result cards: Semi-bold Space Grotesk */
+    .problem-title {
+        font-family: var(--font-heading) !important;
+        font-size: 1.02rem !important;
+        font-weight: 600 !important;
+        letter-spacing: -0.01em !important;
+        line-height: 1.35 !important;
+    }
+    .problem-code {
+        font-family: var(--font-mono) !important;
+        font-size: 0.80rem !important;
+        font-weight: 500 !important;
+        color: #64748B !important;
+        letter-spacing: -0.01em !important;
     }
 
     /* === 6. INPUTS & FORM CONTROLS === */
@@ -207,8 +294,9 @@ st.markdown("""
         border: 1px solid #E2E8F0 !important;
         border-radius: 10px !important;
         color: #0F172A !important;
-        font-family: 'Inter', sans-serif !important;
+        font-family: var(--font-body) !important;
         font-size: 0.92rem !important;
+        line-height: 1.5 !important;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
         padding: 10px 14px !important;
         transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
@@ -223,19 +311,25 @@ st.markdown("""
         background-color: #FFFFFF !important;
         border: 1px solid #E2E8F0 !important;
         border-radius: 10px !important;
+        font-family: var(--font-body) !important;
     }
     div[data-baseweb="select"] > div:focus-within {
         border-color: #6366F1 !important;
         box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18) !important;
     }
     
-    /* Primary Action Buttons */
+    /* Primary Action Buttons: Body font, medium weight 500 */
+    button, button[kind="primary"], .stButton > button {
+        font-family: var(--font-body) !important;
+        font-weight: 500 !important;
+        font-size: 0.92rem !important;
+        letter-spacing: 0.01em !important;
+    }
     button[kind="primary"] {
         background-color: #6366F1 !important;
         color: #FFFFFF !important;
         border: none !important;
         border-radius: 10px !important;
-        font-weight: 600 !important;
         padding: 10px 20px !important;
         box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25) !important;
         transition: background-color 0.15s ease !important;
@@ -244,14 +338,17 @@ st.markdown("""
         background-color: #4F46E5 !important;
     }
 
-    /* Slider Font Harmonization (Inter instead of monospace) */
+    /* Slider Font Harmonization (Body font with Tabular Numerals) */
     div[data-testid="stSlider"] * {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        font-family: var(--font-body) !important;
+        font-variant-numeric: tabular-nums !important;
     }
     div[data-testid="stSlider"] div[data-testid="stTickBarMin"],
     div[data-testid="stSlider"] div[data-testid="stTickBarMax"] {
+        font-family: var(--font-body) !important;
         font-size: 0.78rem !important;
         color: #64748B !important;
+        font-variant-numeric: tabular-nums !important;
     }
 
     /* === 7. MULTISELECT CHIPS (NO TRUNCATION) === */
@@ -266,8 +363,9 @@ st.markdown("""
     }
     div[data-baseweb="tag"] span {
         color: #4338CA !important;
+        font-family: var(--font-body) !important;
         font-size: 0.82rem !important;
-        font-weight: 600 !important;
+        font-weight: 500 !important;
         white-space: normal !important;
         text-overflow: unset !important;
         overflow: visible !important;
@@ -277,14 +375,16 @@ st.markdown("""
     }
 
     /* === 8. DIFFICULTY BADGES & SCORE PILLS === */
+    /* Difficulty Badges: Body font, uppercase, small, slight letter-spacing */
     .badge-pill {
         display: inline-block;
         padding: 3px 10px;
         border-radius: 14px;
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
+        font-family: var(--font-body) !important;
+        font-size: 0.72rem !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.05em !important;
+        text-transform: uppercase !important;
     }
     .badge-beginner  { background: #DCFCE7; color: #15803D; border: 1px solid #BBF7D0; }
     .badge-easy      { background: #E0F2FE; color: #0369A1; border: 1px solid #BAE6FD; }
@@ -292,18 +392,22 @@ st.markdown("""
     .badge-hard      { background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; }
     .badge-challenge { background: #F3E8FF; color: #7E22CE; border: 1px solid #E9D5FF; }
 
+    /* Score Pills: Mono font, tabular numbers */
     .score-pill {
         display: inline-block;
         padding: 3px 10px;
         border-radius: 14px;
-        font-size: 0.76rem;
-        font-weight: 600;
+        font-family: var(--font-mono) !important;
+        font-size: 0.74rem !important;
+        font-weight: 500 !important;
+        letter-spacing: -0.01em !important;
+        font-variant-numeric: tabular-nums !important;
         background: #EEF2FF;
         color: #4338CA;
         border: 1px solid #C7D2FE;
     }
 
-    /* === 9. MODE COMPARISON METRIC CARDS (COLORED TOP BORDERS) === */
+    /* === 9. MODE COMPARISON METRIC CARDS === */
     .comp-metric-card {
         background: #FFFFFF;
         border-radius: 12px;
@@ -316,16 +420,20 @@ st.markdown("""
     .comp-metric-3 { border-top: 3px solid #F59E0B; } /* Amber */
     .comp-metric-label {
         color: #64748B;
-        font-size: 0.76rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
+        font-family: var(--font-body) !important;
+        font-size: 0.74rem !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.06em !important;
     }
     .comp-metric-val {
         color: #0F172A;
-        font-size: 1.7rem;
-        font-weight: 800;
+        font-family: var(--font-heading) !important;
+        font-size: 1.7rem !important;
+        font-weight: 700 !important;
         margin-top: 2px;
+        letter-spacing: -0.02em !important;
+        font-variant-numeric: tabular-nums !important;
     }
 
     /* Side-by-Side Result Card Accents */
@@ -341,7 +449,7 @@ st.markdown("""
     .mode-card-sem  { border-left: 4px solid #14B8A6; }
     .mode-card-both { border-left: 4px solid #6366F1; }
 
-    /* === 10. PROBLEM PREVIEW SECTION LABELS & EXPANDERS === */
+    /* === 10. PROBLEM PREVIEW SECTION LABELS, CODE BLOCKS & EXPANDERS === */
     div[data-testid="stExpander"] {
         background: #FFFFFF !important;
         border-radius: 10px !important;
@@ -354,19 +462,36 @@ st.markdown("""
     }
     div[data-testid="stExpander"] summary * {
         color: #475569 !important;
+        font-family: var(--font-body) !important;
         font-size: 0.85rem !important;
         font-weight: 600 !important;
     }
+    
+    /* Small uppercase labels for preview */
     .preview-label {
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: #64748B;
+        font-family: var(--font-body) !important;
+        font-size: 0.72rem !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.08em !important;
+        text-transform: uppercase !important;
+        color: #64748B !important;
         margin-top: 14px;
         margin-bottom: 4px;
         padding-bottom: 2px;
         border-bottom: 1px solid #F1F5F9;
+    }
+
+    /* Code Blocks & Monospace Snippets: JetBrains Mono */
+    code, pre, pre code,
+    div[data-testid="stCodeBlock"] *,
+    div[data-testid="stCodeBlock"] pre,
+    div[data-testid="stCodeBlock"] code,
+    .stMarkdown pre,
+    .stMarkdown code,
+    .stCode * {
+        font-family: var(--font-mono) !important;
+        font-size: 0.84rem !important;
+        line-height: 1.5 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -488,8 +613,8 @@ with st.sidebar:
 # ----------------- MAIN HEADER (NON-REDUNDANT) -----------------
 st.markdown("""
 <div style="margin-bottom: 1.4rem;">
-    <h1 style="font-size: 1.85rem; font-weight: 800; color: #0F172A; margin: 0; letter-spacing: -0.02em;">Problem Search & Recommendations</h1>
-    <p style="font-size: 0.93rem; color: #64748B; margin-top: 4px; margin-bottom: 0;">Algorithmic similarity discovery, topic clustering, and adaptive difficulty progression for CodeChef</p>
+    <h1 class="page-title">Problem Search & Recommendations</h1>
+    <p class="page-subtitle">Algorithmic similarity discovery, topic clustering, and adaptive difficulty progression for CodeChef</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -553,7 +678,7 @@ with tabs[0]:
         
         top_k = results_df.head(k_results)
         
-        st.markdown(f'<div style="margin: 20px 0 12px 0; font-size: 1.05rem; font-weight: 700; color: #0F172A;">Top {len(top_k)} Matching Problems ({mode} mode)</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="section-heading">Top {len(top_k)} Matching Problems ({mode} mode)</div>', unsafe_allow_html=True)
         
         for _, row in top_k.iterrows():
             diff = str(row.get("difficulty", "medium")).lower()
@@ -566,9 +691,9 @@ with tabs[0]:
                 <div class="white-card">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                         <div>
-                            <h4 style="margin: 0; font-size: 1.02rem;">
-                                <a href="{codechef_link}" target="_blank" style="text-decoration: none; color: #4338CA;">{row.get('title', 'Unknown')}</a>
-                                <span style="font-size: 0.82rem; color: #64748B; font-weight: normal; margin-left: 6px;">({row.get('qcode', 'N/A')})</span>
+                            <h4 style="margin: 0;">
+                                <a href="{codechef_link}" target="_blank" class="problem-title" style="text-decoration: none; color: #4338CA;">{row.get('title', 'Unknown')}</a>
+                                <span class="problem-code">({row.get('qcode', 'N/A')})</span>
                             </h4>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
@@ -640,7 +765,7 @@ with tabs[1]:
         c_left, c_right = st.columns(2)
 
         with c_left:
-            st.markdown('<div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">Sparse Keyword (TF-IDF)</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-heading" style="margin: 0 0 4px 0 !important; font-size: 1.02rem !important;">Sparse Keyword (TF-IDF)</div>', unsafe_allow_html=True)
             st.caption("Matches exact word tokens (often distracted by narrative words like Chef, city, game).")
             for rank, (_, row) in enumerate(kw_df.iterrows(), 1):
                 is_shared = row["qcode"] in common
@@ -653,8 +778,8 @@ with tabs[1]:
                 st.markdown(f"""
                 <div class="{card_class}">
                     <div style="font-weight: 600;">
-                        #{rank}. <a href="{link}" target="_blank" style="text-decoration: none; color: #1E293B;">{row['title']}</a> 
-                        <span style="font-size: 0.82rem; color: #64748B;">({row['qcode']})</span>{shared_tag}
+                        #{rank}. <a href="{link}" target="_blank" class="problem-title" style="text-decoration: none; color: #1E293B;">{row['title']}</a> 
+                        <span class="problem-code">({row['qcode']})</span>{shared_tag}
                     </div>
                     <div style="font-size: 0.82rem; color: #64748B; margin-top: 6px; display: flex; align-items: center; gap: 8px;">
                         <span class="badge-pill {badge_class}">{diff.upper()}</span>
@@ -664,7 +789,7 @@ with tabs[1]:
                 """, unsafe_allow_html=True)
 
         with c_right:
-            st.markdown('<div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">Dense Semantic (MiniLM-L6-v2)</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-heading" style="margin: 0 0 4px 0 !important; font-size: 1.02rem !important;">Dense Semantic (MiniLM-L6-v2)</div>', unsafe_allow_html=True)
             st.caption("Matches conceptual problem meaning and algorithm abstraction across disparate stories.")
             for rank, (_, row) in enumerate(sem_df.iterrows(), 1):
                 is_shared = row["qcode"] in common
@@ -677,8 +802,8 @@ with tabs[1]:
                 st.markdown(f"""
                 <div class="{card_class}">
                     <div style="font-weight: 600;">
-                        #{rank}. <a href="{link}" target="_blank" style="text-decoration: none; color: #1E293B;">{row['title']}</a> 
-                        <span style="font-size: 0.82rem; color: #64748B;">({row['qcode']})</span>{shared_tag}
+                        #{rank}. <a href="{link}" target="_blank" class="problem-title" style="text-decoration: none; color: #1E293B;">{row['title']}</a> 
+                        <span class="problem-code">({row['qcode']})</span>{shared_tag}
                     </div>
                     <div style="font-size: 0.82rem; color: #64748B; margin-top: 6px; display: flex; align-items: center; gap: 8px;">
                         <span class="badge-pill {badge_class}">{diff.upper()}</span>
@@ -758,7 +883,11 @@ with tabs[2]:
             ))
             
         fig.update_layout(
-            title=f"2D Problem Semantic Space ({len(filtered_plot):,} problems shown)",
+            title=dict(
+                text=f"2D Problem Semantic Space ({len(filtered_plot):,} problems shown)",
+                font=dict(family="Space Grotesk, sans-serif", size=15)
+            ),
+            font=dict(family="Inter, sans-serif"),
             height=580,
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
@@ -772,7 +901,7 @@ with tabs[2]:
         
         summary_path = "out/cluster_summary.csv"
         if os.path.exists(summary_path):
-            st.markdown('<div style="font-size: 1.05rem; font-weight: 700; color: #0F172A; margin: 18px 0 10px 0;">Cluster Profiles & Exemplar Medoids</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-heading" style="margin: 18px 0 10px 0 !important; font-size: 1.05rem !important;">Cluster Profiles & Exemplar Medoids</div>', unsafe_allow_html=True)
             sum_df = pd.read_csv(summary_path)
             st.dataframe(
                 sum_df[["cluster_id", "top_topic_tags", "top_tfidf_terms", "size", "exemplar_1", "exemplar_2"]],
@@ -877,7 +1006,7 @@ with tabs[3]:
 
         if not recs_df.empty:
             target_tier_name = recs_df.iloc[0]['difficulty'].upper()
-            st.markdown(f'<div style="font-size: 1.15rem; font-weight: 700; color: #0F172A; margin-bottom: 14px;">Recommended Next Problems ({target_tier_name} tier)</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="section-heading" style="margin-bottom: 14px !important;">Recommended Next Problems ({target_tier_name} tier)</div>', unsafe_allow_html=True)
 
             for idx, (_, rec) in enumerate(recs_df.iterrows(), 1):
                 diff = str(rec.get("difficulty", "medium")).lower()
@@ -893,9 +1022,9 @@ with tabs[3]:
                     <div class="white-card">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <div>
-                                <h4 style="margin: 0; font-size: 1.02rem;">
-                                    #{idx}. <a href="{link}" target="_blank" style="text-decoration: none; color: #4338CA;">{rec.get('title', 'Unknown')}</a>
-                                    <span style="font-size: 0.82rem; color: #64748B; font-weight: normal; margin-left: 6px;">({rec.get('qcode', 'N/A')})</span>
+                                <h4 style="margin: 0;">
+                                    #{idx}. <a href="{link}" target="_blank" class="problem-title" style="text-decoration: none; color: #4338CA;">{rec.get('title', 'Unknown')}</a>
+                                    <span class="problem-code">({rec.get('qcode', 'N/A')})</span>
                                 </h4>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
