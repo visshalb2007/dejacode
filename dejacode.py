@@ -560,13 +560,18 @@ if __name__ == "__main__":
     ap.add_argument("--force-embed", action="store_true", help="Force recomputation of embeddings")
     a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
     df = preprocess(load(a.data)); print("problems after cleaning:", len(df))
-    emb_path = f"{a.out}/emb.npy"
-    if os.path.exists(emb_path) and not a.force_embed:
-        emb = np.load(emb_path)
-        if len(emb) != len(df):
-            emb = embed(df["doc"], a.model); np.save(emb_path, emb)
+    model_slug = a.model.split("/")[-1]
+    emb_model_path = f"{a.out}/emb_{model_slug}.npy"
+    emb_default_path = f"{a.out}/emb.npy"
+    if os.path.exists(emb_model_path) and not a.force_embed:
+        emb = np.load(emb_model_path)
+    elif os.path.exists(emb_default_path) and not a.force_embed and a.model == "all-MiniLM-L6-v2":
+        emb = np.load(emb_default_path)
     else:
-        emb = embed(df["doc"], a.model); np.save(emb_path, emb)
+        emb = embed(df["doc"], a.model)
+        np.save(emb_model_path, emb)
+        if a.model == "all-MiniLM-L6-v2":
+            np.save(emb_default_path, emb)
     labels, sil = cluster(emb, method=a.cluster_method, k=a.k, min_cluster_size=a.min_cluster_size, min_samples=a.min_samples)
     names = label_clusters(df, labels)
     df["cluster"] = labels; df["cluster_label"] = df["cluster"].map(names)
