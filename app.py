@@ -156,8 +156,80 @@ with tabs[0]:
 
 # ----------------- TAB 2: Compare Search Modes -----------------
 with tabs[1]:
-    st.subheader("Side-by-Side Mode Comparison")
-    st.caption("Inspect how Sparse Keyword (TF-IDF) vs Dense Semantic (MiniLM) rank problems on the exact same query.")
+    st.subheader("Side-by-Side Mode Comparison: Sparse vs Dense")
+    st.caption("Directly contrast Sparse Keyword (TF-IDF) against Dense Semantic (all-MiniLM-L6-v2) on the same input.")
+
+    comp_query = st.text_input(
+        "Enter a test query for comparison:",
+        value="Chef wants to find shortest path between cities avoiding tolls",
+        key="comp_query_input"
+    )
+    k_comp = st.slider("Results to Compare", 3, 15, 6, key="k_comp_slider")
+
+    if comp_query.strip():
+        kw_scores = searcher.scores(comp_query, mode="keyword")
+        sem_scores = searcher.scores(comp_query, mode="semantic")
+
+        kw_idx = np.argsort(-kw_scores)[:k_comp]
+        sem_idx = np.argsort(-sem_scores)[:k_comp]
+
+        kw_df = df.iloc[kw_idx].copy(); kw_df["score"] = kw_scores[kw_idx]
+        sem_df = df.iloc[sem_idx].copy(); sem_df["score"] = sem_scores[sem_idx]
+
+        kw_codes = set(kw_df["qcode"])
+        sem_codes = set(sem_df["qcode"])
+        common = kw_codes & sem_codes
+        jaccard = len(common) / len(kw_codes | sem_codes) if (kw_codes | sem_codes) else 0.0
+
+        m_col1, m_col2, m_col3 = st.columns(3)
+        with m_col1:
+            st.metric("Shared Problems in Top-K", f"{len(common)} / {k_comp}")
+        with m_col2:
+            st.metric("Jaccard Similarity Overlap", f"{jaccard:.2f}")
+        with m_col3:
+            st.metric("Novel Semantic Discoveries", f"{len(sem_codes - kw_codes)}")
+
+        c_left, c_right = st.columns(2)
+
+        with c_left:
+            st.markdown("#### 🔤 Sparse Keyword (TF-IDF)")
+            st.caption("Matches exact word tokens (often distracted by story words like *Chef*, *city*, *game*).")
+            for rank, (_, row) in enumerate(kw_df.iterrows(), 1):
+                is_shared = row["qcode"] in common
+                border_color = "#3B82F6" if is_shared else "#CBD5E1"
+                shared_tag = " <span style='color: #2563EB; font-size: 0.8rem; font-weight: 600;'>[In Both]</span>" if is_shared else ""
+                diff = str(row.get("difficulty", "medium")).lower()
+                badge_class = f"badge-{diff}" if diff in DIFF_ORDER else "badge-medium"
+                link = f"https://www.codechef.com{row['link']}" if str(row.get("link", "")).startswith("/") else f"https://www.codechef.com/problems/{row.get('qcode', '')}"
+                
+                st.markdown(f"""
+                <div style="border: 2px solid {border_color}; border-radius: 6px; padding: 10px; margin-bottom: 8px; background: #FAFAFA;">
+                    <div style="font-weight: 600;">#{rank}. <a href="{link}" target="_blank">{row['title']}</a> ({row['qcode']}){shared_tag}</div>
+                    <div style="font-size: 0.82rem; color: #64748B; margin-top: 4px;">
+                        <span class="{badge_class}">{diff.upper()}</span> | Score: {row['score']:.3f} | Tags: {', '.join(row['tags'][:3]) if isinstance(row['tags'], list) and row['tags'] else 'None'}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        with c_right:
+            st.markdown("#### 🧠 Dense Semantic (MiniLM-L6-v2)")
+            st.caption("Matches conceptual problem meaning and algorithm abstraction (even with different story words).")
+            for rank, (_, row) in enumerate(sem_df.iterrows(), 1):
+                is_shared = row["qcode"] in common
+                border_color = "#3B82F6" if is_shared else "#10B981"
+                shared_tag = " <span style='color: #2563EB; font-size: 0.8rem; font-weight: 600;'>[In Both]</span>" if is_shared else " <span style='color: #059669; font-size: 0.8rem; font-weight: 600;'>[Semantic Match]</span>"
+                diff = str(row.get("difficulty", "medium")).lower()
+                badge_class = f"badge-{diff}" if diff in DIFF_ORDER else "badge-medium"
+                link = f"https://www.codechef.com{row['link']}" if str(row.get("link", "")).startswith("/") else f"https://www.codechef.com/problems/{row.get('qcode', '')}"
+
+                st.markdown(f"""
+                <div style="border: 2px solid {border_color}; border-radius: 6px; padding: 10px; margin-bottom: 8px; background: #F0FDF4;">
+                    <div style="font-weight: 600;">#{rank}. <a href="{link}" target="_blank">{row['title']}</a> ({row['qcode']}){shared_tag}</div>
+                    <div style="font-size: 0.82rem; color: #64748B; margin-top: 4px;">
+                        <span class="{badge_class}">{diff.upper()}</span> | Score: {row['score']:.3f} | Tags: {', '.join(row['tags'][:3]) if isinstance(row['tags'], list) and row['tags'] else 'None'}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 
 # ----------------- TAB 3: Interactive Clusters -----------------
 with tabs[2]:
