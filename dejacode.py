@@ -154,6 +154,23 @@ def cluster(emb, method="kmeans", k=12, min_cluster_size=10, min_samples=3, seed
     km = KMeans(n_clusters=k, n_init=10, random_state=seed).fit(emb)
     return km.labels_, silhouette_score(emb, km.labels_, sample_size=min(5000, len(emb)), random_state=seed)
 
+def extract_cluster_topic_tags(df, labels, topn=3):
+    """Extract dominant topic tags by frequency within each cluster."""
+    from collections import Counter
+    out = {}
+    for c in sorted(set(labels)):
+        mask = np.array(labels) == c
+        sub_tags = []
+        for t in df.loc[mask, "tags"]:
+            if isinstance(t, (list, tuple)):
+                sub_tags.extend(t)
+            elif isinstance(t, str) and t.startswith("["):
+                try: sub_tags.extend(ast.literal_eval(t))
+                except Exception: pass
+        counts = Counter(sub_tags).most_common(topn)
+        out[c] = [tag for tag, _ in counts]
+    return out
+
 def label_clusters(df, labels, topn=5):
     tv = TfidfVectorizer(stop_words="english", max_features=20000)
     X = tv.fit_transform(df["doc"]); terms = np.array(tv.get_feature_names_out())
