@@ -164,14 +164,29 @@ def label_clusters(df, labels, topn=5):
     return out
 
 # ---------- 5. visualization ----------
-def plot_clusters(emb, labels, names, path="out/clusters.png"):
+def project_2d(emb, method="umap", seed=0):
+    """Project embeddings to 2D using UMAP (nonlinear) or PCA (linear fallback)."""
+    if method == "umap":
+        try:
+            import umap
+            reducer = umap.UMAP(n_components=2, n_neighbors=15, min_dist=0.1, metric="cosine", random_state=seed)
+            return reducer.fit_transform(emb)
+        except Exception as e:
+            print(f"UMAP projection failed ({e}), falling back to PCA.")
+    return PCA(2, random_state=seed).fit_transform(emb)
+
+def plot_clusters(emb, labels, names, path="out/clusters.png", xy=None):
     import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
-    xy = PCA(2, random_state=0).fit_transform(emb)
+    if xy is None:
+        xy = PCA(2, random_state=0).fit_transform(emb)
     plt.figure(figsize=(10, 7))
     sc = plt.scatter(xy[:, 0], xy[:, 1], c=labels, cmap="tab20", s=6)
     for c, n in names.items():
-        p = xy[labels == c].mean(axis=0); plt.text(p[0], p[1], str(c), weight="bold")
-    plt.title("Problem clusters (PCA)"); plt.tight_layout(); plt.savefig(path, dpi=150); plt.close()
+        if c == -1: continue
+        mask = labels == c
+        if mask.any():
+            p = xy[mask].mean(axis=0); plt.text(p[0], p[1], str(c), weight="bold")
+    plt.title("Problem clusters"); plt.tight_layout(); plt.savefig(path, dpi=150); plt.close()
 
 # ---------- 6. evaluation (relevance = shares >=1 tag) ----------
 def evaluate(s, n_queries=200, k=10, seed=0):
