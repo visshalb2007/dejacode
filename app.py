@@ -277,7 +277,7 @@ def load_app_data():
     emb_path = "out/emb.npy"
     coords_path = "out/coords_2d.npy"
     if not (os.path.exists(data_path) and os.path.exists(emb_path)):
-        return None, None, None, None
+        return None, None, None, None, {}
     
     df = pd.read_csv(data_path)
     def safe_parse(v):
@@ -294,9 +294,77 @@ def load_app_data():
     emb = np.load(emb_path)
     coords = np.load(coords_path) if os.path.exists(coords_path) else None
     searcher = Searcher(df, emb)
-    return df, emb, coords, searcher
 
-df, emb, coords, searcher = load_app_data()
+    raw_map = {}
+    if os.path.exists("data/questions.csv"):
+        try:
+            raw_q = pd.read_csv("data/questions.csv", usecols=["QCode", "statement"])
+            raw_map = dict(zip(raw_q["QCode"].astype(str), raw_q["statement"].astype(str)))
+        except Exception:
+            pass
+
+    return df, emb, coords, searcher, raw_map
+
+df, emb, coords, searcher, raw_map = load_app_data()
+
+import re
+def render_problem_latex(raw_text):
+    """Format problem statement with KaTeX LaTeX math and clean structured layout."""
+    if not raw_text or pd.isna(raw_text):
+        return "No statement text available."
+    t = str(raw_text)
+
+    # 1. Strip web boilerplate & scraped artifacts
+    t = re.sub(r'<[^>]+>', ' ', t)
+    t = re.sub(r'(?i)all submissions for this problem are available\.?', '', t)
+    t = re.sub(r'(?i)read problems? statements? in [^.]*?(?:as well|here)\s*\.?|read problems? statements? in [^.]*\.', '', t)
+
+    # Strip jquery/javascript snippets
+    t = re.sub(r'\$\([^\)]*\)\.html\([^\)]*\);?', '', t)
+    t = re.sub(r'\$\.ajax\(\{.*?\}\);?', '', t, flags=re.DOTALL)
+    t = re.sub(r'Here is where you can show off your computer programming skills.*', '', t, flags=re.DOTALL)
+
+    # 2. Section Headings
+    t = re.sub(r'(?m)^\s*(Input\s*format|Input)\s*:?\s*$', '\n\n**Input Format**\n', t, flags=re.I)
+    t = re.sub(r'(?m)^\s*(Output\s*format|Output)\s*:?\s*$', '\n\n**Output Format**\n', t, flags=re.I)
+    t = re.sub(r'(?m)^\s*(Constraints|Test\s*data)\s*:?\s*$', '\n\n**Constraints**\n', t, flags=re.I)
+    t = re.sub(r'(?m)^\s*(Example|Sample\s*test\s*cases?)\s*:?\s*$', '\n\n**Example**\n', t, flags=re.I)
+    t = re.sub(r'(?m)^\s*(Sample\s*Input|Input\s*:)\s*$', '\n*Sample Input:*\n', t, flags=re.I)
+    t = re.sub(r'(?m)^\s*(Sample\s*Output|Output\s*:)\s*$', '\n*Sample Output:*\n', t, flags=re.I)
+    t = re.sub(r'(?m)^\s*(Explanation)\s*:?\s*$', '\n\n**Explanation**\n', t, flags=re.I)
+
+    # 3. Convert math inequalities and notation to KaTeX LaTeX
+    def double_ineq(m):
+        lo, v, hi = m.group(1), m.group(2).strip(), m.group(3)
+        v = re.sub(r'\b([A-Za-z])(\d)\b', r'\1_\2', v)
+        return f"${lo} \\le {v} \\le {hi}$"
+    t = re.sub(r'(\d+)\s*(?:≤|<=)\s*([A-Za-z0-9_, ]+?)\s*(?:≤|<=)\s*(\d+(?:\^\{\d+\}|\^\d+)?)', double_ineq, t)
+
+    def single_le(m):
+        v, val = m.group(1).strip(), m.group(2)
+        v = re.sub(r'\b([A-Za-z])(\d)\b', r'\1_\2', v)
+        return f"${v} \\le {val}$"
+    t = re.sub(r'([A-Za-z][A-Za-z0-9_]*)\s*(?:≤|<=)\s*(\d+(?:\^\{\d+\}|\^\d+)?)', single_le, t)
+
+    def single_ge(m):
+        v, val = m.group(1).strip(), m.group(2)
+        v = re.sub(r'\b([A-Za-z])(\d)\b', r'\1_\2', v)
+        return f"${v} \\ge {val}$"
+    t = re.sub(r'([A-Za-z][A-Za-z0-9_]*)\s*(?:≥|>=)\s*(\d+(?:\^\{\d+\}|\^\d+)?)', single_ge, t)
+
+    # Variables with single-digit subscripts: N1, N2, N3, Ai when isolated
+    t = re.sub(r'(?<![A-Za-z0-9_\$\\])\b([NnMmA-Z])(\d)\b(?![A-Za-z0-9_\$])', r'$\1_\2$', t)
+
+    # Powers: 10^5 -> $10^5$, 10^9 -> $10^9$
+    t = re.sub(r'(?<!\$)\b10\^(\d+)\b(?!\$)', r'$10^{\1}$', t)
+
+    # Big-O notation: O(N log N) -> $\mathcal{O}(N \log N)$
+    t = re.sub(r'\bO\(([NnMKk][\w\s\*\+\-\^\(\)\/]*)\)', r'$\\mathcal{O}(\1)$', t)
+
+    # Clean redundant blank lines
+    t = re.sub(r'\n{3,}', '\n\n', t)
+    return t.strip()
+
 
 # Sidebar
 with st.sidebar:
@@ -394,7 +462,8 @@ with tabs[0]:
                 </div>
                 """, unsafe_allow_html=True)
                 with st.expander("Preview Problem Statement"):
-                    st.write(row.get("text", "No statement text available."))
+                    stmt_raw = raw_map.get(str(row.get("qcode", ""))) or row.get("text", "No statement text available.")
+                    st.markdown(render_problem_latex(stmt_raw))
 
 # ----------------- TAB 2: Mode Comparison -----------------
 with tabs[1]:

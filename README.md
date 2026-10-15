@@ -143,7 +143,7 @@ Evaluating Top-1 semantic retrieval against human-annotated topic tags identifie
 
 Déjà Code implements a concept-aligned difficulty progression engine:
 1. **User Skill Profiling:** Solved problems $S = \{s_1, \dots, s_m\}$ are mapped to difficulty integers:
-   $$\text{Level}_{\text{user}} = \left\lfloor \frac{1}{|S|} \sum_{s \in S} \text{Diff}(s) \right\rceil \in \{0: \text{Beginner}, 1: \text{Easy}, 2: \text{Medium}, 3: \text{Hard}, 4: \text{Challenge}\}$$
+   $$\text{Level}_{\text{user}} = \text{round}\left( \frac{1}{|S|} \sum_{s \in S} \text{Diff}(s) \right) \in \{0: \text{Beginner}, 1: \text{Easy}, 2: \text{Medium}, 3: \text{Hard}, 4: \text{Challenge}\}$$
 2. **Concept Centroid Extraction:** The user's demonstrated domain concept is captured by the normalized centroid:
    $$\bar{\mathbf{c}} = \frac{\sum_{s \in S} \mathbf{e}_s}{\left\|\sum_{s \in S} \mathbf{e}_s\right\|_2}$$
 3. **Difficulty Stepping:** Targets tier $\text{Level}_{\text{target}} = \text{clip}(\text{Level}_{\text{user}} + \Delta, 0, 4)$ where $\Delta \in \{+1, 0, -1\}$.
