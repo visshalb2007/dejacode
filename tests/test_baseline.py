@@ -35,5 +35,46 @@ class TestBaselinePipeline(unittest.TestCase):
         self.assertIn("query_qcode", df.columns)
         self.assertIn("similar_qcodes", df.columns)
 
+    def test_recommend_next_progression(self):
+        from dejacode import recommend_next
+        df = pd.DataFrame({
+            "qcode": ["P1", "P2", "P3", "P4"],
+            "title": ["Prob 1", "Prob 2", "Prob 3", "Prob 4"],
+            "difficulty": ["beginner", "beginner", "easy", "medium"],
+            "doc": ["find sum of numbers", "add two integers", "maximum pair sum", "shortest graph path"],
+            "tags": [["math"], ["math"], ["math"], ["graph"]],
+            "link": ["/p1", "/p2", "/p3", "/p4"]
+        })
+        emb = np.array([
+            [1.0, 0.0, 0.0],
+            [0.9, 0.1, 0.0],
+            [0.85, 0.15, 0.0],
+            [0.0, 0.0, 1.0]
+        ], dtype=float)
+        # Solved beginner problems P1, P2 -> step +1 should target easy (P3)
+        recs = recommend_next(["P1", "P2"], df, emb, k=2, step=1)
+        self.assertFalse(recs.empty)
+        self.assertNotIn("P1", recs["qcode"].tolist())
+        self.assertNotIn("P2", recs["qcode"].tolist())
+        self.assertEqual(recs.iloc[0]["qcode"], "P3")
+        self.assertEqual(recs.iloc[0]["difficulty"], "easy")
+
+    def test_searcher_modes(self):
+        df = pd.DataFrame({
+            "qcode": ["A", "B"],
+            "title": ["Graph Shortest Path", "Binary Search Array"],
+            "doc": ["find shortest path in directed graph", "binary search in sorted array"],
+            "difficulty": ["medium", "easy"],
+            "tags": [["graph"], ["binary-search"]],
+            "link": ["/a", "/b"]
+        })
+        emb = np.array([[1.0, 0.0], [0.0, 1.0]])
+        s = Searcher(df, emb)
+        s._q_emb = lambda q: emb[0]
+        for mode in ["semantic", "keyword", "hybrid"]:
+            res = s.search("shortest path graph", k=2, mode=mode)
+            self.assertEqual(len(res), 2)
+            self.assertEqual(res.iloc[0]["qcode"], "A")
+
 if __name__ == "__main__":
     unittest.main()
