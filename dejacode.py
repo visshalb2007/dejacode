@@ -222,6 +222,33 @@ def label_clusters(df, labels, topn=5):
         out[c] = f"{tag_prefix}{', '.join(top_terms)}"
     return out
 
+def export_cluster_summary(df, emb, labels, names, out_path="out/cluster_summary.csv"):
+    """Export readable cluster profiles, topic tags, TF-IDF terms, and 3 exemplar problems."""
+    topic_tags_map = extract_cluster_topic_tags(df, labels, topn=5)
+    exemplars_map = find_cluster_exemplars(df, emb, labels, topn=3)
+    tv = TfidfVectorizer(stop_words="english", max_features=20000)
+    X = tv.fit_transform(df["doc"]); terms = np.array(tv.get_feature_names_out())
+    rows = []
+    for c in sorted(set(labels)):
+        mask = np.array(labels) == c
+        size = int(mask.sum())
+        m = np.asarray(X[mask].mean(axis=0)).ravel()
+        top_terms = [t for t in terms[np.argsort(-m)] if t not in CONTEST_STOP_WORDS][:5]
+        exs = exemplars_map.get(c, [])
+        rows.append({
+            "cluster_id": c,
+            "cluster_label": names.get(c, ""),
+            "top_topic_tags": ", ".join(topic_tags_map.get(c, [])),
+            "top_tfidf_terms": ", ".join(top_terms),
+            "size": size,
+            "exemplar_1": exs[0] if len(exs) > 0 else "",
+            "exemplar_2": exs[1] if len(exs) > 1 else "",
+            "exemplar_3": exs[2] if len(exs) > 2 else "",
+        })
+    summary_df = pd.DataFrame(rows)
+    summary_df.to_csv(out_path, index=False)
+    return summary_df
+
 # ---------- 5. visualization ----------
 def project_2d(emb, method="umap", seed=0):
     """Project embeddings to 2D using UMAP (nonlinear) or PCA (linear fallback)."""
@@ -365,6 +392,8 @@ if __name__ == "__main__":
     names = label_clusters(df, labels)
     df["cluster"] = labels; df["cluster_label"] = df["cluster"].map(names)
     df.drop(columns="doc").to_csv(f"{a.out}/problems_clustered.csv", index=False)
+    summary_df = export_cluster_summary(df, emb, labels, names, f"{a.out}/cluster_summary.csv")
+    print(f"Saved cluster summary to {a.out}/cluster_summary.csv")
     
     # 2D projection
     coords_path = f"{a.out}/coords_2d.npy"
