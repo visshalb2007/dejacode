@@ -286,8 +286,12 @@ def evaluate_curated(s, eval_path="data/eval_set.csv", k=10):
 # ---------- CLI: build everything ----------
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data", required=True); ap.add_argument("--k", type=int, default=15)
+    ap.add_argument("--data", required=True); ap.add_argument("--k", type=int, default=12)
     ap.add_argument("--model", default="all-MiniLM-L6-v2"); ap.add_argument("--out", default="out")
+    ap.add_argument("--cluster-method", default="kmeans", choices=["kmeans", "hdbscan"])
+    ap.add_argument("--min-cluster-size", type=int, default=10)
+    ap.add_argument("--min-samples", type=int, default=3)
+    ap.add_argument("--dim-red", default="umap", choices=["umap", "pca"])
     ap.add_argument("--force-embed", action="store_true", help="Force recomputation of embeddings")
     a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
     df = preprocess(load(a.data)); print("problems after cleaning:", len(df))
@@ -298,11 +302,23 @@ if __name__ == "__main__":
             emb = embed(df["doc"], a.model); np.save(emb_path, emb)
     else:
         emb = embed(df["doc"], a.model); np.save(emb_path, emb)
-    labels, sil = cluster(emb, a.k); names = label_clusters(df, labels)
+    labels, sil = cluster(emb, method=a.cluster_method, k=a.k, min_cluster_size=a.min_cluster_size, min_samples=a.min_samples)
+    names = label_clusters(df, labels)
     df["cluster"] = labels; df["cluster_label"] = df["cluster"].map(names)
     df.drop(columns="doc").to_csv(f"{a.out}/problems_clustered.csv", index=False)
-    plot_clusters(emb, labels, names, f"{a.out}/clusters.png")
-    print(f"silhouette={sil:.3f}"); [print(c, n) for c, n in names.items()]
+    
+    # 2D projection
+    coords_path = f"{a.out}/coords_2d.npy"
+    if os.path.exists(coords_path) and not a.force_embed:
+        xy = np.load(coords_path)
+    else:
+        xy = project_2d(emb, method=a.dim_red)
+        np.save(coords_path, xy)
+        
+    plot_clusters(emb, labels, names, f"{a.out}/clusters.png", xy=xy)
+    plot_interactive_clusters(df, xy, labels, names, f"{a.out}/clusters.html")
+    print(f"Clustering ({a.cluster_method}): silhouette={sil:.3f}")
+    [print(f"Cluster {c}: {n}") for c, n in names.items()]
     searcher = Searcher(df, emb, a.model)
     metrics, fails = evaluate(searcher)
     if metrics is not None:
