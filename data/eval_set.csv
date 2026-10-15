@@ -1,0 +1,46 @@
+query_qcode,query_title,similar_qcodes,algorithm,note
+CROWD,Three is Crowd,"CBARS,LEPAPER,CSUMD",matrix-exponentiation,Linear recurrence / DP transition solved via matrix exponentiation under different storylines
+CSUMD,My Fair Coins,"CROWD,CBARS,LEPAPER",matrix-exponentiation,Counting valid configurations using matrix powers for large N
+CBARS,A Wonderful Chocolate,"CROWD,CSUMD,LEPAPER",matrix-exponentiation,Grid tiling dynamic programming optimized using matrix multiplication
+TWONIM,Dual Nim,"ANKNIM2,GAMEAAM,HAMILG",game-theory-nim,Impartial turn-based game reducible to Nim-sum / XOR properties across varied narratives
+GAMEAAM,Subtraction Game,"TWONIM,ANKNIM2,HAMILG",game-theory-nim,Subtraction game analyzed using Sprague-Grundy theorem
+ANKNIM2,Bored of Nim,"TWONIM,GAMEAAM,HAMILG",game-theory-nim,Stone removal game with winning positions determined by bitwise XOR
+DISTNUM,Simple Queries,"IDOLS,FUNAGP,FRBSUM",range-query-segtree,Point updates and range queries on array/tree
+FUNAGP,Fun with AGp,"IDOLS,DISTNUM,FRBSUM",range-query-segtree,Range sum / arithmetic progression query using segment tree
+IDOLS,Idols and Fans,"DISTNUM,FUNAGP,FRBSUM",tree-segtree-hld,Range queries on trees via heavy-light decomposition / segment trees
+FRBSUM,ForbiddenSum,"DISTNUM,FUNAGP,IDOLS",range-query-segtree,Range query for minimal impossible subset sum using persistent segment tree
+BINTREEQ,Queries on a Binary Tree,"SUBTREE,TREEDIAM,RBTREE",tree-lca-binary-lifting,Lowest Common Ancestor / tree distance queries under different narrative skins
+RBTREE,Chef and Red Black Tree,"BINTREEQ,SUBTREE,TREEDIAM",tree-lca-binary-lifting,Path properties on trees computed via LCA and depth parities
+SUBTREE,Festivals,"BINTREEQ,RBTREE,TREEDIAM",tree-lca-binary-lifting,Subtree queries and path intersections resolved via LCA and Euler tour
+TOMJERRY,Tom And Jerry,"CIELTOMY,AVGSHORT,FLYDIST",shortest-path-dijkstra,Single-source / all-pairs shortest paths on weighted or grid graphs
+CIELTOMY,Ciel and Tomya,"TOMJERRY,AVGSHORT,FLYDIST",shortest-path-dijkstra,Counting shortest paths between vertices in a weighted graph
+THEGAME,Filling the maze,"CHEFIHG,MINWDSUM,WSCAGAIN",bfs-grid-traversal,Grid reachability and shortest step path using BFS/flood-fill
+CHEFIHG,Chef and Land,"THEGAME,MINWDSUM,WSCAGAIN",bfs-grid-traversal,Multi-source BFS traversal finding nearest obstacles on grid
+STACKS,Stacks,"DIVIDEN,INVERT,COT5",binary-search-monotonic,Greedy element placement with binary search / patience sorting
+DIVIDEN,Divide or die,"STACKS,INVERT,CHEFHACK",binary-search-monotonic,Binary search over continuous or discrete monotonic predicate
+INVERT,Gaming Inversion,"STACKS,DIVIDEN,COT5",binary-search-monotonic,Inversion counting and monotonic boundary search
+MMSUM,Better Maximal Sum,"MXSUBARR,ALOST,SUBINC",dp-maximum-subarray,Maximum contiguous subarray optimization / modified Kadane algorithm
+SUBINC,Count Subarrays,"MMSUM,MXSUBARR,ALOST",dp-maximum-subarray,Non-decreasing contiguous subarrays counted via 1D dynamic programming
+MXSUBARR,Maximum Disjoint Subarrays,"MMSUM,SUBINC,ALOST",dp-maximum-subarray,Subarray sum constraint optimization using prefix tracking
+CHEFTEAM,Chef team,"CNTSOLS,MARBLES",combinatorics-binomial,Computing combinations / permutations modulo prime with modular inverse
+MARBLES,Marbles,"CHEFTEAM,CNTSOLS",combinatorics-stars-bars,Stars and bars combinatorics counting non-negative integer partitions
+CNTSOLS,The Number Of Solutions,"CHEFTEAM,MARBLES",number-theory-modular-pow,Counting solutions modulo N using modular exponentiation and periodicity
+DISTCODE,Distinct Codes,"STRSUB,CIEL8STR",string-processing-matching,String pattern scanning and substring validation
+STRSUB,Count Substrings,"DISTCODE,CIEL8STR",string-processing-matching,Contiguous substring condition checking on character strings
+TREECAKE,Tree Cake,"AMSEQT,LWS,TREEFUN",disjoint-set-union,"Graph connectivity, cycle detection, and component merging via DSU"
+TREEFUN,Tree Fun,"TREECAKE,AMSEQT,LWS",disjoint-set-union,Tree/forest component maintenance and union operations
+PLAYFIT,Fit to Play,"CFRTEST,LEMAGIC,FLOW017",greedy-sorting-comparison,Greedy optimal choice via sorting and single-pass comparison
+CFRTEST,Devu and friendship testing,"PLAYFIT,LEMAGIC,FLOW017",greedy-sorting-comparison,Distinct elements scheduling / greedy uniqueness filtering
+EQUATIO,Equation Solver,"TREECNT2,EXGCD,CHEFCLOS",number-theory-gcd,Linear Diophantine equation and extended GCD calculation
+EXGCD,Expected Greatest Common Divisor,"EQUATIO,TREECNT2,CHEFCLOS",number-theory-gcd,Extended Euclidean algorithm for modular relations
+TROOT,Roots of a Tree,"RRTREE2,CHEFPRES,THEGAME",dfs-tree-traversal,Tree traversal and subtree property accumulation via DFS
+RRTREE2,Tree Again,"TROOT,CHEFPRES,SUBTREE",dfs-tree-traversal,Dynamic tree rerooting / diameter tracking using DFS
+DRAGNXOR,Open the Dragon Scroll,"CHXORR,MXZERO,SEAPROAR",bit-manipulation-xor,Bitwise XOR properties and bit count greedy arrangement
+CHXORR,Chef and Pie,"DRAGNXOR,MXZERO,SEAPROAR",bit-manipulation-xor,XOR linear independence and basis reduction
+CHEFPOLY,Chef and Polygons,"CHPLGNS,MINPOLY",computational-geometry,2D point inside polygon containment and area integration
+CHPLGNS,Chef and Polygons,"CHEFPOLY,MINPOLY",computational-geometry,Convex polygon nesting and cross product orientation test
+LISLDS,LIS and LDS,"MAKELIS,J2,TLCS",dp-longest-increasing-subsequence,Longest increasing subsequence via DP + patience sorting
+MAKELIS,Longest Increasing Subsequences,"LISLDS,J2,TLCS",dp-longest-increasing-subsequence,Constructing array meeting exact LIS length constraints
+FACTORIZ,Factorisation,"NUMGAME2,GNUM,ANUGCD",number-theory-primes,Prime factorization and divisor counting algorithms
+GNUM,Game of Numbers,"FACTORIZ,NUMGAME2,ANUGCD",number-theory-primes,Bipartite matching / prime factor network flow
+CHEFARRP,Chef and Subarrays,"MMSUM,MXSUBARR,ALOST",two-pointers-sliding-window,Subarray product/sum condition checked using two pointers / prefix sums
