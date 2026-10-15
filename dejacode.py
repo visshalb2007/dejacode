@@ -428,6 +428,41 @@ def evaluate_curated(s, eval_path="data/eval_set.csv", k=10):
         res[mode] = {"P@5": np.mean(P5), "MRR": np.mean(MRR), f"nDCG@{k}": np.mean(NDCG)}
     return pd.DataFrame(res).T
 
+def categorize_failures(fails_df, df):
+    """Categorize false match failures into 4 distinct failure causes."""
+    title_to_text = dict(zip(df["title"], df["text"]))
+    cats = []
+    story_words = {"chef", "sereja", "elephant", "little elephant", "ciel", "johny", "alex", "friend", "friends", "game", "shop", "shopping", "coins"}
+    syn_pairs = [{"math", "number-theory"}, {"graph", "tree"}, {"graph", "bfs"}, {"string", "palindrome"}, {"dp", "memoization"}]
+    for _, row in fails_df.iterrows():
+        q_title = str(row["query"]); m_title = str(row["wrong_match"])
+        q_tags = row["q_tags"] if isinstance(row["q_tags"], (list, tuple)) else (ast.literal_eval(str(row["q_tags"])) if str(row["q_tags"]).startswith("[") else [])
+        m_tags = row["m_tags"] if isinstance(row["m_tags"], (list, tuple)) else (ast.literal_eval(str(row["m_tags"])) if str(row["m_tags"]).startswith("[") else [])
+        if len(m_tags) == 0:
+            cats.append("Noisy Tags (Missing in Candidate)")
+            continue
+        tag_overlap_miss = False
+        for sp in syn_pairs:
+            if (set(q_tags) & sp) and (set(m_tags) & sp):
+                cats.append("Noisy Tags (Synonym Incomplete)")
+                tag_overlap_miss = True
+                break
+        if tag_overlap_miss: continue
+        q_text = title_to_text.get(q_title, ""); m_text = title_to_text.get(m_title, "")
+        if len(str(q_text)) < 180 or len(str(m_text)) < 180:
+            cats.append("Short Ambiguous Statement")
+            continue
+        words_q = set(q_title.lower().split()); words_m = set(m_title.lower().split())
+        if (words_q & words_m) & story_words:
+            cats.append("Shared Story Words")
+            continue
+        if "test cases" in str(q_text).lower() and "test cases" in str(m_text).lower():
+            cats.append("Shared Input Format")
+            continue
+        cats.append("Shared Story Words")
+    fails_df["failure_cause"] = cats
+    return fails_df
+
 # ---------- CLI: build everything ----------
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
@@ -473,8 +508,9 @@ if __name__ == "__main__":
     metrics, fails = evaluate(searcher)
     if metrics is not None:
         print("\n=== Tag-Overlap Evaluation (Noisy Proxy) ===")
-        print(metrics.round(3)); metrics.to_csv(f"{a.out}/metrics.csv")
-        pd.DataFrame(fails, columns=["query", "wrong_match", "score", "q_tags", "m_tags"]).to_csv(f"{a.out}/failures.csv", index=False)
+        fails_df = pd.DataFrame(fails, columns=["query", "wrong_match", "score", "q_tags", "m_tags"])
+        fails_df = categorize_failures(fails_df, df)
+        fails_df.to_csv(f"{a.out}/failures.csv", index=False)
     curated_metrics = evaluate_curated(searcher, "data/eval_set.csv", k=10)
     if curated_metrics is not None:
         print("\n=== Curated Benchmark Evaluation (Hand-crafted Ground Truth) ===")
