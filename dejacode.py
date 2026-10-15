@@ -139,7 +139,18 @@ class Searcher:
         return r
 
 # ---------- 4. clustering + labels ----------
-def cluster(emb, k=15, seed=0):
+def cluster_hdbscan(emb, min_cluster_size=10, min_samples=3):
+    from sklearn.cluster import HDBSCAN
+    hdb = HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples, copy=True)
+    labels = hdb.fit_predict(emb)
+    mask = labels != -1
+    n_c = len(set(labels) - {-1})
+    sil = silhouette_score(emb[mask], labels[mask]) if (n_c > 1 and mask.sum() > n_c) else 0.0
+    return labels, sil
+
+def cluster(emb, method="kmeans", k=12, min_cluster_size=10, min_samples=3, seed=0):
+    if method == "hdbscan":
+        return cluster_hdbscan(emb, min_cluster_size=min_cluster_size, min_samples=min_samples)
     km = KMeans(n_clusters=k, n_init=10, random_state=seed).fit(emb)
     return km.labels_, silhouette_score(emb, km.labels_, sample_size=min(5000, len(emb)), random_state=seed)
 
