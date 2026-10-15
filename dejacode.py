@@ -453,6 +453,9 @@ if __name__ == "__main__":
     df.drop(columns="doc").to_csv(f"{a.out}/problems_clustered.csv", index=False)
     summary_df = export_cluster_summary(df, emb, labels, names, f"{a.out}/cluster_summary.csv")
     print(f"Saved cluster summary to {a.out}/cluster_summary.csv")
+    hidden_df = find_hidden_matches(df, emb, min_semantic=0.62, max_keyword=0.12, top_n=30)
+    hidden_df.to_csv(f"{a.out}/hidden_matches.csv", index=False)
+    print(f"Saved {len(hidden_df)} hidden matches to {a.out}/hidden_matches.csv")
     
     # 2D projection
     coords_path = f"{a.out}/coords_2d.npy"
