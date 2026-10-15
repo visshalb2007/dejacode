@@ -188,6 +188,52 @@ def plot_clusters(emb, labels, names, path="out/clusters.png", xy=None):
             p = xy[mask].mean(axis=0); plt.text(p[0], p[1], str(c), weight="bold")
     plt.title("Problem clusters"); plt.tight_layout(); plt.savefig(path, dpi=150); plt.close()
 
+def plot_interactive_clusters(df, xy, labels, names, path="out/clusters.html"):
+    """Generate an interactive Plotly HTML scatter with cluster colors and rich hover info."""
+    import plotly.graph_objects as go
+    hover_texts = []
+    cluster_names = [f"Cluster {c}: {names.get(c, 'Outliers/Noise' if c == -1 else 'Cluster ' + str(c))}" for c in labels]
+    for i, (_, row) in enumerate(df.iterrows()):
+        qcode = row.get("qcode", "")
+        title = row.get("title", "")
+        diff = row.get("difficulty", "unknown")
+        tags_str = ", ".join(row.get("tags", [])) if isinstance(row.get("tags"), list) else str(row.get("tags", ""))
+        snippet = str(row.get("text", ""))[:140].replace("<", "&lt;").replace(">", "&gt;")
+        hover_texts.append(
+            f"<b>{title}</b> ({qcode})<br>"
+            f"<b>Difficulty:</b> {diff}<br>"
+            f"<b>Cluster:</b> {cluster_names[i]}<br>"
+            f"<b>Tags:</b> {tags_str}<br>"
+            f"<i>{snippet}...</i>"
+        )
+    fig = go.Figure()
+    unique_clusters = sorted(set(labels))
+    for c in unique_clusters:
+        mask = np.array(labels) == c
+        c_label = names.get(c, "Outliers/Noise") if c != -1 else "Noise/Outliers"
+        c_name = f"Cluster {c}: {c_label[:30]}"
+        fig.add_trace(go.Scatter(
+            x=xy[mask, 0],
+            y=xy[mask, 1],
+            mode="markers",
+            name=c_name,
+            marker=dict(size=6, opacity=0.75),
+            text=[hover_texts[idx] for idx, m in enumerate(mask) if m],
+            hoverinfo="text"
+        ))
+    fig.update_layout(
+        title="Déjà Code - Interactive Problem Clusters (UMAP 2D)",
+        xaxis=dict(title="Dim 1", showgrid=True, zeroline=False),
+        yaxis=dict(title="Dim 2", showgrid=True, zeroline=False),
+        hovermode="closest",
+        legend=dict(itemsizing="constant", orientation="v"),
+        width=1100,
+        height=750,
+        template="plotly_white"
+    )
+    fig.write_html(path, include_plotlyjs="cdn")
+    return fig
+
 # ---------- 6. evaluation (relevance = shares >=1 tag) ----------
 def evaluate(s, n_queries=200, k=10, seed=0):
     df = s.df; ok = np.where(df["tags"].map(len) > 0)[0]
