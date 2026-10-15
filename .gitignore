@@ -2,7 +2,7 @@ __pycache__/
 *.pyc
 data/program_codes/
 data/solutions.csv
-.streamlit/
+!.streamlit/config.toml
 out/*.npy
 out/*.csv
 out/*.png

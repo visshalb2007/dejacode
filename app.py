@@ -18,34 +18,59 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
     /* Global Soft UI Background & Typography */
-    .stApp {
-        background-color: #EEF2F6;
-        color: #2D3748;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    html, body, .stApp {
+        background-color: #EEF2F6 !important;
+        color: #1E293B !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    }
+
+    /* Force all headings and text to high-contrast dark slate */
+    h1, h2, h3, h4, h5, h6,
+    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3, .stMarkdown h4, .stMarkdown h5, .stMarkdown h6,
+    [data-testid="stHeadingWithActionElements"] * {
+        color: #0F172A !important;
+        font-weight: 700 !important;
+    }
+
+    p, span, label,
+    .stMarkdown p,
+    [data-testid="stWidgetLabel"] label,
+    [data-testid="stWidgetLabel"] p,
+    [data-testid="stMarkdownContainer"] p {
+        color: #334155 !important;
+        font-weight: 500 !important;
+    }
+
+    .stCaption, small, [data-testid="stCaptionContainer"] {
+        color: #64748B !important;
+        font-size: 0.88rem !important;
     }
 
     /* Sidebar Soft UI */
     section[data-testid="stSidebar"] {
-        background-color: #EEF2F6;
-        border-right: 1px solid rgba(255, 255, 255, 0.7);
+        background-color: #E2E8F0 !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.8) !important;
     }
-    section[data-testid="stSidebar"] > div {
-        background-color: #EEF2F6;
+    section[data-testid="stSidebar"] * {
+        color: #1E293B !important;
+    }
+    section[data-testid="stSidebar"] .stCaption {
+        color: #64748B !important;
     }
 
     /* Neomorphic Headers */
     .main-header {
-        font-size: 2.3rem;
-        font-weight: 800;
-        letter-spacing: -0.03em;
-        color: #1E293B;
-        margin-bottom: 0.2rem;
+        font-size: 2.3rem !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.03em !important;
+        color: #0F172A !important;
+        margin-bottom: 0.2rem !important;
     }
     .sub-header {
-        font-size: 0.98rem;
-        color: #64748B;
-        margin-bottom: 1.6rem;
-        font-weight: 500;
+        font-size: 0.98rem !important;
+        color: #475569 !important;
+        margin-bottom: 1.6rem !important;
+        font-weight: 500 !important;
     }
 
     /* Neomorphic Extruded Container Card */
@@ -55,52 +80,116 @@ st.markdown("""
         box-shadow: 7px 7px 14px #d1d9e6, -7px -7px 14px #ffffff;
         padding: 20px 24px;
         margin-bottom: 18px;
-        border: 1px solid rgba(255, 255, 255, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.7);
         transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
     .neo-card:hover {
         box-shadow: 9px 9px 18px #c8d2e0, -9px -9px 18px #ffffff;
     }
 
-    /* Neomorphic Inset Metric Card */
+    /* Neomorphic Metric Card */
     div[data-testid="stMetric"] {
-        background: #EEF2F6;
-        border-radius: 14px;
-        box-shadow: 5px 5px 10px #d1d9e6, -5px -5px 10px #ffffff;
-        padding: 12px 18px;
-        border: 1px solid rgba(255, 255, 255, 0.7);
+        background: #EEF2F6 !important;
+        border-radius: 14px !important;
+        box-shadow: 6px 6px 12px #d1d9e6, -6px -6px 12px #ffffff !important;
+        padding: 14px 18px !important;
+        border: 1px solid rgba(255, 255, 255, 0.8) !important;
+    }
+    div[data-testid="stMetricLabel"] * {
+        color: #64748B !important;
+        font-size: 0.8rem !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.04em !important;
+    }
+    div[data-testid="stMetricValue"] * {
+        color: #0F172A !important;
+        font-size: 1.85rem !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.02em !important;
     }
 
     /* Neomorphic Tabs */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 14px;
-        background-color: transparent;
-        padding: 6px 0;
+        gap: 14px !important;
+        background-color: transparent !important;
+        padding: 6px 0 !important;
+        border-bottom: none !important;
     }
     .stTabs [data-baseweb="tab"] {
-        background-color: #EEF2F6;
-        border-radius: 12px;
-        padding: 9px 22px;
-        font-weight: 600;
-        color: #64748B;
-        box-shadow: 4px 4px 8px #d1d9e6, -4px -4px 8px #ffffff;
-        border: 1px solid rgba(255, 255, 255, 0.6) !important;
+        background-color: #EEF2F6 !important;
+        border-radius: 12px !important;
+        padding: 9px 22px !important;
+        font-weight: 600 !important;
+        font-size: 0.92rem !important;
+        color: #475569 !important;
+        box-shadow: 4px 4px 8px #d1d9e6, -4px -4px 8px #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.7) !important;
     }
     .stTabs [aria-selected="true"] {
         background-color: #EEF2F6 !important;
         color: #2563EB !important;
         box-shadow: inset 3px 3px 6px #d1d9e6, inset -3px -3px 6px #ffffff !important;
-        border: 1px solid rgba(209, 217, 230, 0.5) !important;
+        border: 1px solid rgba(37, 99, 235, 0.3) !important;
+        font-weight: 700 !important;
+    }
+    /* Remove red active line indicator */
+    .stTabs [data-baseweb="tab-highlight"],
+    .stTabs [data-baseweb="tab-border"] {
+        display: none !important;
     }
 
-    /* Soft UI Inset Inputs */
-    .stTextInput > div > div > input,
-    .stTextArea > div > div > textarea,
-    .stSelectbox > div > div {
-        background-color: #EEF2F6 !important;
+    /* Crisp Light Input Fields */
+    .stTextInput input,
+    .stTextArea textarea,
+    div[data-baseweb="textarea"] textarea,
+    div[data-baseweb="input"] input {
+        background-color: #FFFFFF !important;
+        color: #0F172A !important;
+        border: 1px solid #CBD5E1 !important;
         border-radius: 12px !important;
-        border: 1px solid rgba(255, 255, 255, 0.7) !important;
-        box-shadow: inset 3px 3px 6px #d1d9e6, inset -3px -3px 6px #ffffff !important;
+        box-shadow: inset 2px 2px 5px #e2e8f0, inset -2px -2px 5px #ffffff !important;
+        font-size: 0.95rem !important;
+        padding: 12px 14px !important;
+    }
+    .stTextInput input:focus,
+    .stTextArea textarea:focus {
+        border-color: #2563EB !important;
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2) !important;
+        outline: none !important;
+    }
+    .stTextInput input::placeholder,
+    .stTextArea textarea::placeholder {
+        color: #94A3B8 !important;
+    }
+    div[data-baseweb="textarea"],
+    div[data-baseweb="input"] {
+        background-color: transparent !important;
+        border: none !important;
+    }
+
+    /* Dropdowns / Selectboxes */
+    div[data-baseweb="select"] > div {
+        background-color: #FFFFFF !important;
+        color: #0F172A !important;
+        border: 1px solid #CBD5E1 !important;
+        border-radius: 12px !important;
+        box-shadow: 3px 3px 6px #d1d9e6, -3px -3px 6px #ffffff !important;
+    }
+    div[data-baseweb="select"] * {
+        color: #0F172A !important;
+    }
+
+    /* Radio buttons & Sliders */
+    div[data-testid="stRadio"] label,
+    div[data-testid="stRadio"] p,
+    div[data-testid="stRadio"] span {
+        color: #1E293B !important;
+        font-weight: 500 !important;
+    }
+    div[data-testid="stSlider"] label,
+    div[data-testid="stSlider"] p,
+    div[data-testid="stSlider"] div {
         color: #1E293B !important;
     }
 
@@ -118,27 +207,27 @@ st.markdown("""
     .badge-beginner {
         background: #EEF2F6;
         color: #0D9488;
-        border: 1px solid rgba(13, 148, 136, 0.3);
+        border: 1px solid rgba(13, 148, 136, 0.35);
     }
     .badge-easy {
         background: #EEF2F6;
         color: #2563EB;
-        border: 1px solid rgba(37, 99, 235, 0.3);
+        border: 1px solid rgba(37, 99, 235, 0.35);
     }
     .badge-medium {
         background: #EEF2F6;
         color: #D97706;
-        border: 1px solid rgba(217, 119, 6, 0.3);
+        border: 1px solid rgba(217, 119, 6, 0.35);
     }
     .badge-hard {
         background: #EEF2F6;
         color: #DC2626;
-        border: 1px solid rgba(220, 38, 38, 0.3);
+        border: 1px solid rgba(220, 38, 38, 0.35);
     }
     .badge-challenge {
         background: #EEF2F6;
         color: #7C3AED;
-        border: 1px solid rgba(124, 58, 237, 0.3);
+        border: 1px solid rgba(124, 58, 237, 0.35);
     }
 
     /* Inset Score & Tag Indicators */
@@ -149,9 +238,9 @@ st.markdown("""
         font-size: 0.78rem;
         font-weight: 600;
         background: #EEF2F6;
-        color: #475569;
+        color: #334155;
         box-shadow: inset 2px 2px 4px #d1d9e6, inset -2px -2px 4px #ffffff;
-        border: 1px solid rgba(255, 255, 255, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.5);
     }
 
     /* Soft UI Comparison Cards */
@@ -161,7 +250,7 @@ st.markdown("""
         padding: 14px 18px;
         margin-bottom: 12px;
         box-shadow: 4px 4px 9px #d1d9e6, -4px -4px 9px #ffffff;
-        border: 1px solid rgba(255, 255, 255, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.7);
     }
     .comp-box-kw { border-left: 4px solid #64748B; }
     .comp-box-sem { border-left: 4px solid #059669; }
@@ -172,8 +261,12 @@ st.markdown("""
         background: #EEF2F6;
         border-radius: 12px;
         box-shadow: 3px 3px 6px #d1d9e6, -3px -3px 6px #ffffff;
-        border: 1px solid rgba(255, 255, 255, 0.5);
-        margin-top: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        margin-top: 8px;
+    }
+    div[data-testid="stExpander"] summary * {
+        color: #1E293B !important;
+        font-weight: 600 !important;
     }
 </style>
 """, unsafe_allow_html=True)
