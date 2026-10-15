@@ -3,7 +3,7 @@ import ast
 import numpy as np
 import pandas as pd
 import streamlit as st
-import plotly.express as px
+import plotly.graph_objects as go
 from dejacode import Searcher, recommend_next, attach_solution_stats, get_code_snippet, DIFF_ORDER
 
 st.set_page_config(
@@ -161,8 +161,104 @@ with tabs[1]:
 
 # ----------------- TAB 3: Interactive Clusters -----------------
 with tabs[2]:
-    st.subheader("2D Semantic Problem Map")
-    st.caption("Explore nonlinear 2D projections of competitive programming problems and discovered algorithmic clusters.")
+    st.subheader("2D Semantic Problem Map & Cluster Exploration")
+    st.caption("Nonlinear 2D projection (UMAP) of dense problem embeddings with discovered thematic clusters.")
+    
+    if coords is not None and "cluster_label" in df.columns:
+        plot_df = df.copy()
+        plot_df["x"] = coords[:, 0]
+        plot_df["y"] = coords[:, 1]
+        plot_df["tags_display"] = plot_df["tags"].apply(lambda t: ", ".join(t[:5]) if isinstance(t, list) else "")
+        
+        c_filter1, c_filter2, c_filter3 = st.columns([2, 2, 2])
+        with c_filter1:
+            color_choice = st.selectbox("Color By", ["Cluster", "Difficulty"])
+        with c_filter2:
+            cluster_opts = ["All Clusters"] + sorted(plot_df["cluster_label"].dropna().unique().tolist())
+            selected_cluster = st.selectbox("Filter Cluster", cluster_opts)
+        with c_filter3:
+            diff_opts = ["All Difficulties"] + [d.capitalize() for d in DIFF_ORDER]
+            selected_diff = st.selectbox("Filter Difficulty", diff_opts)
+            
+        filtered_plot = plot_df.copy()
+        if selected_cluster != "All Clusters":
+            filtered_plot = filtered_plot[filtered_plot["cluster_label"] == selected_cluster]
+        if selected_diff != "All Difficulties":
+            filtered_plot = filtered_plot[filtered_plot["difficulty"].astype(str).str.lower().str.strip() == selected_diff.lower()]
+            
+        color_col = "cluster_label" if color_choice == "Cluster" else "difficulty"
+        
+        fig = go.Figure()
+        for cat_name, sub in filtered_plot.groupby(color_col):
+            hover_texts = [
+                f"<b>{row['title']}</b> ({row['qcode']})<br>"
+                f"Difficulty: {str(row['difficulty']).upper()}<br>"
+                f"Cluster: {row.get('cluster_label', 'N/A')}<br>"
+                f"Tags: {', '.join(row['tags'][:4]) if isinstance(row['tags'], list) and row['tags'] else 'None'}"
+                for _, row in sub.iterrows()
+            ]
+            fig.add_trace(go.Scatter(
+                x=sub["x"],
+                y=sub["y"],
+                mode="markers",
+                name=str(cat_name),
+                text=hover_texts,
+                hoverinfo="text",
+                marker=dict(size=7, opacity=0.82)
+            ))
+            
+        fig.update_layout(
+            title=f"2D Problem Semantic Space ({len(filtered_plot):,} problems shown)",
+            height=620,
+            template="plotly_white",
+            legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="center", x=0.5),
+            margin=dict(l=20, r=20, t=40, b=80),
+            xaxis=dict(title="UMAP Component 1", showgrid=True),
+            yaxis=dict(title="UMAP Component 2", showgrid=True)
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Cluster Summary Table
+        summary_path = "out/cluster_summary.csv"
+        if os.path.exists(summary_path):
+            st.markdown("#### 📊 Algorithmic Cluster Profiles & Exemplar Medoids")
+            sum_df = pd.read_csv(summary_path)
+            st.dataframe(
+                sum_df[["cluster_id", "top_topic_tags", "top_tfidf_terms", "size", "exemplar_1", "exemplar_2"]],
+                column_config={
+                    "cluster_id": "Cluster #",
+                    "top_topic_tags": "Dominant Tags",
+                    "top_tfidf_terms": "Characteristic Terms",
+                    "size": "Problem Count",
+                    "exemplar_1": "Medoid Problem 1",
+                    "exemplar_2": "Medoid Problem 2"
+                },
+                use_container_width=True,
+                hide_index=True
+            )
+            
+        # Hidden Matches Expander
+        hidden_path = "out/hidden_matches.csv"
+        if os.path.exists(hidden_path):
+            with st.expander("🔍 Discovered 'Hidden Matches' (High Semantic Similarity, Low Lexical Overlap)"):
+                st.caption("Pairs of problems with completely different story words that share the exact same underlying algorithm.")
+                h_df = pd.read_csv(hidden_path)
+                st.dataframe(
+                    h_df[["prob1_code", "prob2_code", "prob1_title", "prob2_title", "semantic_sim", "keyword_sim", "explanation"]].head(15),
+                    column_config={
+                        "prob1_code": "Query Code",
+                        "prob2_code": "Match Code",
+                        "prob1_title": "Query Title",
+                        "prob2_title": "Match Title",
+                        "semantic_sim": "Dense Sim (MiniLM)",
+                        "keyword_sim": "Sparse Sim (TF-IDF)",
+                        "explanation": "Algorithmic Rationale"
+                    },
+                    use_container_width=True,
+                    hide_index=True
+                )
+    else:
+        st.info("2D coordinates not available. Run `python dejacode.py --data data/questions.csv` to generate projection.")
 
 # ----------------- TAB 4: Problem Recommendations -----------------
 with tabs[3]:
