@@ -11,6 +11,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 *A production-grade NLP and neural information retrieval engine designed to pierce through narrative story-dressing in algorithmic problem statements to discover isomorphic problems, thematic concept clusters, and optimal learning trajectories.*
+<img width="1912" height="896" alt="image" src="https://github.com/user-attachments/assets/0b910707-cab7-4636-b3a2-31be46c820d3" />
 
 </div>
 
